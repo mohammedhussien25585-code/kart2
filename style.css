@@ -6,7 +6,7 @@
 }
 
 body {
-  font-family: 'Cairo', sans-serif;
+  font-family: 'Cairo', Tahoma, 'Segoe UI', Arial, sans-serif;
   background: #e8e8e8;
   display: flex;
   justify-content: center;
@@ -21,6 +21,9 @@ body {
   min-height: 100vh;
   position: relative;
   box-shadow: 0 0 30px rgba(0,0,0,0.15);
+}
+.app.is-hidden-home {
+  display: none !important;
 }
 
 /* Status Bar */
@@ -47,7 +50,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 16px 14px;
+  padding: 8px 16px 10px;
   position: relative;
 }
 
@@ -71,8 +74,8 @@ body {
 }
 
 .logo-circle {
-  width: 56px;
-  height: 56px;
+  width: 48px;
+  height: 48px;
   background: #fff;
   border-radius: 50%;
   display: flex;
@@ -83,7 +86,7 @@ body {
 }
 
 .eagle {
-  font-size: 32px;
+  font-size: 28px;
 }
 
 .logo-text {
@@ -190,10 +193,8 @@ body {
   background: #111;
   color: #fff;
   text-align: center;
-  padding: 14px 12px;
-  margin-top: auto;
-  position: sticky;
-  bottom: 0;
+  padding: 8px 12px 10px;
+  margin-top: 8px;
 }
 
 .footer-text {

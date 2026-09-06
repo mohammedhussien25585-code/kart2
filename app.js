@@ -109,18 +109,29 @@ document.querySelectorAll('.stat-card').forEach((card, index) => {
 
 document.getElementById('back-btn').addEventListener('click', closePage);
 
+window.addEventListener('popstate', function () {
+  closePage();
+});
+
 function openPage(page) {
   document.getElementById('page-title').textContent = pageTitles[page] || page;
   document.getElementById('page-content').innerHTML = renderPage(page);
   document.getElementById('page-container').classList.remove('hidden');
-  document.querySelector('.app').style.display = 'none';
+  document.querySelector('.app').style.display = '';
+  document.querySelector('.app').classList.add('is-hidden-home');
   attachPageEvents(page);
+  history.pushState({ page: page }, '', '#page');
 }
 
 function closePage() {
   document.getElementById('page-container').classList.add('hidden');
-  document.querySelector('.app').style.display = 'block';
+  document.querySelector('.app').classList.remove('is-hidden-home');
+  document.querySelector('.app').style.display = '';
+  document.getElementById('page-content').innerHTML = '';
   updateStats();
+  if (location.hash === '#page') {
+    history.replaceState({}, '', location.pathname);
+  }
 }
 
 // ========== Helpers ==========
