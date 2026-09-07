@@ -542,7 +542,7 @@ function renderPaymentReview() {
   return `
     <div class="form-card">
       <h3 style="font-size:16px;margin-bottom:8px">مراجعة رسائل الدفع</h3>
-      <p style="font-size:13px;color:#555;margin-bottom:12px">تحويلات فودافون كاش. الطلبات المعلقة الآن: ${pending.length}. لو مفيش طلب مطابق امسح الرسالة.</p>
+      <p style="font-size:13px;color:#555;margin-bottom:12px">أكد الطلب المعلق بعد ما تشوف التحويل. الطلبات المعلقة: ${pending.length}. لو مفيش طلب مطابق امسح الرسالة.</p>
       <button class="btn" id="clear-review-btn" style="background:#eee;margin-bottom:12px">مسح كل الرسائل</button>
       <div class="table-wrap">
         <table>
@@ -640,37 +640,9 @@ function renderArchive() {
   `).join('');
 
   return `
-    ${pendingHtml}
+    ${pendingHtml || '<div class="form-card"><p style="font-size:14px;color:#666;text-align:center;padding:20px 8px">لا توجد طلبات معلقة.<br>لما العميل يطلب، الطلب هيظهر هنا وتأكد بمزرار واحد.</p></div>'}
     <div class="form-card">
-      <h3 style="font-size:16px;margin-bottom:8px">جسر موبايلك</h3>
-      <p style="font-size:13px;color:#666;margin-bottom:12px;line-height:1.8">
-        على موبايل فودافون كاش: لما توصل رسالة التحويل افتحها → انسخ النص → الصقه هنا → تأكيد.
-      </p>
-      <div class="form-group">
-        <label>الصق رسالة فودافون كاش</label>
-        <textarea id="sms-body" rows="4" placeholder="تم استلام مبلغ 120 جنيه من ..."></textarea>
-      </div>
-      <div class="form-group">
-        <label>أو اكتب المبلغ فقط</label>
-        <input type="number" id="sim-amount" placeholder="120" />
-      </div>
-      <button class="btn btn-primary" id="sim-sms-btn">تأكيد التحويل وإرسال الكارت</button>
-      <button class="btn" id="clear-msg-btn" style="margin-top:8px;background:#eee">مسح سجل الانتظار</button>
-    </div>
-    <div class="form-card">
-      <h3 style="font-size:14px;margin-bottom:10px">آخر الرسائل</h3>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>الرسالة</th>
-              <th>المبلغ</th>
-              <th>الحالة</th>
-            </tr>
-          </thead>
-          <tbody>${rows || '<tr><td colspan="3" style="text-align:center;padding:24px">لا توجد رسائل</td></tr>'}</tbody>
-        </table>
-      </div>
+      <p style="font-size:13px;color:#666;line-height:1.8">شوف تحويل فودافون عندك، وبعدين اضغط <b>تأكيد يدوي</b> على الطلب. الكارت يتثبت في كروتي عند العميل.</p>
     </div>
   `;
 }
