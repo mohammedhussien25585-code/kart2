@@ -22,6 +22,16 @@
       box-shadow: 0 0 30px rgba(0,0,0,0.1);
     }
 
+
+    .clogin { display:none; min-height:100vh; background:#111; color:#fff; padding:40px 22px; }
+    .clogin.show { display:block; }
+    .clogin h1 { text-align:center; margin:8px 0; }
+    .clogin p { text-align:center; color:#bbb; font-size:13px; margin-bottom:18px; }
+    .clogin input { width:100%; padding:12px; border:0; border-radius:10px; margin-bottom:10px; font-size:15px; font-family:inherit; box-sizing:border-box; }
+    .clogin .btnx { width:100%; padding:12px; border:0; border-radius:10px; background:#f5a623; color:#111; font-weight:800; font-size:15px; font-family:inherit; }
+    .clogin .lnk { width:100%; margin-top:12px; background:none; border:0; color:#f5a623; font-family:inherit; }
+    .app.clocked { display:none !important; }
+
     /* Header */
     .header {
       background: #000;
@@ -366,12 +376,24 @@
   <script src="api.js"></script>
 </head>
 <body>
-  <div class="app">
+
+  <div class="clogin show" id="clogin">
+    <div style="text-align:center;font-size:42px">🦅</div>
+    <h1>دخول العميل</h1>
+    <p id="clogin-hint">سجل دخول برقمك وكلمة السر عشان كروتك متظهرش لحد تاني</p>
+    <input type="tel" id="c-user" placeholder="رقم الموبايل" dir="ltr" />
+    <input type="password" id="c-pass" placeholder="كلمة السر" />
+    <input type="password" id="c-pass2" placeholder="تأكيد كلمة السر" style="display:none" />
+    <button type="button" class="btnx" id="c-login-btn">دخول</button>
+    <button type="button" class="lnk" id="c-toggle">عميل جديد؟ إنشاء حساب</button>
+  </div>
+  <div class="app clocked" id="capp">
     <!-- Header -->
     <div class="header">
       <div class="logo-circle">🦅</div>
       <h1>كرت شبكة</h1>
       <p>اختر باقتك وأتم الدفع بسهولة</p>
+      <button type="button" id="c-logout" style="margin-top:8px;background:transparent;border:1px solid #666;color:#fff;border-radius:8px;padding:4px 10px">خروج</button>
     </div>
 
     <div class="content" id="main-content">
@@ -807,6 +829,54 @@
       revealCard(card.code, order.phone, order.packageName, order.price);
     }
 
+
+    function chash(s){ try { return btoa(unescape(encodeURIComponent('c|'+s))); } catch(e){ return 'c|'+s; } }
+    function cusers(){ try { return JSON.parse(localStorage.getItem('ks_cusers')||'[]'); } catch(e){ return []; } }
+    function setCusers(v){ localStorage.setItem('ks_cusers', JSON.stringify(v)); }
+    function custSession(){ return sessionStorage.getItem('ks_cust')||''; }
+    var cMode='login';
+    function showCustApp(phone){
+      sessionStorage.setItem('ks_cust', phone);
+      localStorage.setItem('ks_last_phone', phone);
+      document.getElementById('clogin').classList.remove('show');
+      document.getElementById('capp').classList.remove('clocked');
+      var ph=document.getElementById('customer-phone');
+      var lk=document.getElementById('lookup-phone');
+      if(ph) ph.value=phone;
+      if(lk) lk.value=phone;
+      showMyCards(phone);
+    }
+    document.getElementById('c-toggle').addEventListener('click', function(){
+      cMode = cMode==='login'?'signup':'login';
+      document.getElementById('c-pass2').style.display = cMode==='signup'?'':'none';
+      document.getElementById('c-login-btn').textContent = cMode==='signup'?'إنشاء الحساب والدخول':'دخول';
+      document.getElementById('clogin-hint').textContent = cMode==='signup'?'حساب جديد برقمك وكلمة سر':'سجل دخول برقمك وكلمة السر';
+      document.getElementById('c-toggle').textContent = cMode==='signup'?'عندك حساب؟ دخول':'عميل جديد؟ إنشاء حساب';
+    });
+    document.getElementById('c-login-btn').addEventListener('click', function(){
+      var phone=(document.getElementById('c-user').value||'').trim();
+      var pass=document.getElementById('c-pass').value||'';
+      var pass2=document.getElementById('c-pass2').value||'';
+      if(phone.length<10){ alert('اكتب رقم الموبايل صح'); return; }
+      if(pass.length<4){ alert('كلمة السر 4 حروف على الأقل'); return; }
+      var list=cusers();
+      if(cMode==='signup'){
+        if(pass!==pass2){ alert('تأكيد كلمة السر غلط'); return; }
+        if(list.find(function(u){ return u.phone===phone; })){ alert('الرقم مسجل قبل كده، اعمل دخول'); return; }
+        list.push({phone:phone, pass:chash(pass)});
+        setCusers(list);
+        showCustApp(phone);
+        return;
+      }
+      var u=list.find(function(x){ return x.phone===phone && x.pass===chash(pass); });
+      if(!u){ alert('رقم أو كلمة سر غلط'); return; }
+      showCustApp(phone);
+    });
+    document.getElementById('c-logout').addEventListener('click', function(){
+      sessionStorage.removeItem('ks_cust');
+      location.reload();
+    });
+
     // Init
     (async () => {
       if (window.bootKartApi) await window.bootKartApi();
@@ -814,12 +884,7 @@
       if (!fromApi) ensureData();
       renderPackages();
       renderWallets();
-      var last = localStorage.getItem('ks_last_phone') || '';
-      if(last){
-        document.getElementById('customer-phone').value = last;
-        document.getElementById('lookup-phone').value = last;
-        showMyCards(last);
-      }
+      if(custSession()){ showCustApp(custSession()); }
       document.getElementById('lookup-btn').addEventListener('click', function(){
         var ph = document.getElementById('lookup-phone').value.trim();
         document.getElementById('customer-phone').value = ph;
