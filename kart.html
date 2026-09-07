@@ -13,7 +13,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black" />
   <meta name="apple-mobile-web-app-title" content="كرت شبكة" />
-  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
   <meta name="mobile-web-app-capable" content="yes" />
   <style>
     html.authed #login-screen { display: none !important; }
@@ -506,7 +506,7 @@ tr:last-child td {
 .stats.ready{visibility:visible}
 
 </style>
-<script>window.API_BASE=window.API_BASE||"";</script>
+<script>window.API_BASE="";</script>
 <script>
 (function () {
   window.API_BASE = window.API_BASE || '';
@@ -653,14 +653,14 @@ const DB = {
 
 // Initialize default data
 function initData() {
-  if (!localStorage.getItem('ks_clean_fake_stock')) {
+  if (!localStorage.getItem('ks_clean_fake_stock2')) {
     var cards = DB.get('cards') || [];
-    var usedReal = cards.filter(function(c){ return c.status==='used' && c.customer; });
-    var avail = cards.filter(function(c){ return c.status==='available'; }).length;
-    if (cards.length >= 100 && avail >= 100) {
-      DB.set('cards', usedReal);
+    var avail = cards.filter(function(c){ return c.status==='available'; });
+    var kept = cards.filter(function(c){ return c.status!=='available'; });
+    if (avail.length >= 100) {
+      DB.set('cards', kept.concat(avail.filter(function(c){ return c.customer; })));
     }
-    localStorage.setItem('ks_clean_fake_stock', '1');
+    localStorage.setItem('ks_clean_fake_stock2', '1');
   }
 
   if (!localStorage.getItem('ks_initialized')) {
@@ -1015,22 +1015,28 @@ function renderFeedCards() {
 function renderSales() {
   let sales = DB.get('sales') || [];
   const packages = DB.get('packages') || [];
-  const used = (DB.get('cards') || []).filter(c => c.status === 'used');
-  if (used.length && sales.length < used.length) {
-    used.forEach(function (c) {
-      if (sales.some(function (s) { return s.cardCode === c.code; })) return;
-      var pkg = packages.find(function (p) { return Number(p.id) === Number(c.packageId); });
-      sales.push({
-        packageName: pkg ? pkg.name : ('باقة ' + c.packageId),
-        price: pkg ? pkg.price : 0,
-        phone: c.customer || '-',
-        date: c.soldAt ? new Date(c.soldAt).toLocaleString('ar-EG') : '-',
-        type: 'manual',
-        cardCode: c.code
-      });
+  function addSale(item) {
+    if (!item || !item.cardCode && !item.code) return;
+    var code = item.cardCode || item.code;
+    if (sales.some(function (s) { return (s.cardCode||s.code) === code; })) return;
+    sales.push({
+      packageName: item.packageName || item.name || '-',
+      price: Number(item.price||0),
+      phone: item.phone || item.customer || '-',
+      date: item.date || (item.soldAt ? new Date(item.soldAt).toLocaleString('ar-EG') : '-'),
+      type: item.type || 'manual',
+      cardCode: code
     });
-    DB.set('sales', sales);
   }
+  (DB.get('cards') || []).filter(function(c){ return c.status==='used'; }).forEach(function(c){
+    var pkg = packages.find(function (p) { return Number(p.id) === Number(c.packageId); });
+    addSale({ cardCode: c.code, packageName: pkg?pkg.name:('باقة '+c.packageId), price: pkg?pkg.price:0, phone: c.customer, soldAt: c.soldAt, type:'manual' });
+  });
+  Object.keys(localStorage).forEach(function(k){
+    if (k.indexOf('ks_mycards') !== 0) return;
+    try { (JSON.parse(localStorage.getItem(k)||'[]')||[]).forEach(addSale); } catch(e){}
+  });
+  DB.set('sales', sales);
   sales = sales.slice().reverse();
   const total = sales.reduce((s, x) => s + (x.price || 0), 0);
 
@@ -2539,15 +2545,8 @@ window.approvePayment = approvePayment;
   
   
   <script>
-    document.querySelectorAll('.menu-item').forEach(function(btn){
-      btn.addEventListener('click', function(){
-        if (typeof openPage === 'function') openPage(btn.dataset.page);
-      });
-    });
-    var back=document.getElementById('back-btn');
-    if(back) back.addEventListener('click', function(){ if(typeof closePage==='function') closePage(); });
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then(function(rs){ rs.forEach(function(r){ r.unregister(); }); });
+      navigator.serviceWorker.register('./sw.js').catch(function(){});
     }
   </script>
 </body>
