@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Cache-Control" content="no-store" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>كرت شبكة - شراء كارت v6</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      font-family: 'Cairo', Tahoma, Arial, sans-serif;
+      background: #f0f0f0;
+      direction: rtl;
+      min-height: 100vh;
+    }
+    .app {
+      max-width: 420px;
+      margin: 0 auto;
+      background: #f5f5f5;
+      min-height: 100vh;
+      box-shadow: 0 0 30px rgba(0,0,0,0.1);
+    }
+
+    /* Header */
+    .header {
+      background: #000;
+      color: #fff;
+      padding: 16px;
+      text-align: center;
+      position: relative;
+    }
+    .logo-circle {
+      width: 60px;
+      height: 60px;
+      background: #fff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 8px;
+      font-size: 32px;
+      border: 2px solid #ddd;
+    }
+    .header h1 {
+      font-size: 18px;
+      font-weight: 800;
+    }
+    .header p {
+      font-size: 12px;
+      opacity: 0.8;
+      margin-top: 4px;
+    }
+
+    /* Content */
+    .content {
+      padding: 16px;
+    }
+
+    .section-title {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: #222;
+    }
+
+    /* Package Cards */
+    .packages {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .package-card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: all 0.2s;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.06);
+    }
+    .package-card:active {
+      transform: scale(0.98);
+    }
+    .package-card.selected {
+      border-color: #f5a623;
+      background: #fff8e6;
+    }
+    .package-icon {
+      width: 50px;
+      height: 50px;
+      background: #f5a62322;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      flex-shrink: 0;
+    }
+    .package-info {
+      flex: 1;
+    }
+    .package-name {
+      font-weight: 800;
+      font-size: 15px;
+      color: #222;
+    }
+    .package-desc {
+      font-size: 12px;
+      color: #777;
+      margin-top: 2px;
+    }
+    .package-price {
+      font-weight: 800;
+      font-size: 18px;
+      color: #f5a623;
+      white-space: nowrap;
+    }
+    .package-price span {
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    /* Payment Section */
+    .payment-box {
+      background: #fff;
+      border-radius: 14px;
+      padding: 18px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.06);
+      display: none;
+    }
+    .payment-box.show {
+      display: block;
+    }
+    .payment-box h3 {
+      font-size: 15px;
+      margin-bottom: 14px;
+      font-weight: 700;
+    }
+    .wallet-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .wallet-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      background: #f8f8f8;
+      border-radius: 10px;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .wallet-item.selected {
+      border-color: #27ae60;
+      background: #eafaf1;
+    }
+    .wallet-item .icon {
+      font-size: 24px;
+    }
+    .wallet-item .info {
+      flex: 1;
+    }
+    .wallet-item .name {
+      font-weight: 700;
+      font-size: 14px;
+    }
+    .wallet-item .number {
+      font-size: 13px;
+      color: #555;
+      direction: ltr;
+      text-align: right;
+    }
+    .copy-btn {
+      background: #eee;
+      border: none;
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: 'Cairo', Tahoma, Arial, sans-serif;
+    }
+    .amount-box {
+      background: #111;
+      color: #fff;
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .amount-box .lbl { font-size: 13px; opacity: .85; }
+    .amount-box .val { font-size: 26px; font-weight: 800; color: #f5a623; }
+    .pkg-meta { font-size: 12px; color: #777; margin-top: 2px; }
+    .totals-bar {
+      background: #fff;
+      border-radius: 12px;
+      padding: 10px 12px;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-around;
+      text-align: center;
+      box-shadow: 0 1px 5px rgba(0,0,0,.06);
+    }
+    .totals-bar .n { font-weight: 800; font-size: 16px; }
+    .totals-bar .l { font-size: 11px; color: #777; }
+    .btn-primary[disabled] { opacity: 1; background: #f5a623; color: #111; }
+
+    .form-group {
+      margin-bottom: 14px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: #333;
+    }
+    .form-group input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      font-size: 14px;
+      font-family: 'Cairo', Tahoma, Arial, sans-serif;
+      background: #fafafa;
+      outline: none;
+    }
+    .form-group input:focus {
+      border-color: #f5a623;
+      background: #fff;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 800;
+      font-family: 'Cairo', Tahoma, Arial, sans-serif;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: #f5a623;
+      color: #000;
+    }
+    .btn-primary:active {
+      background: #e09410;
+    }
+    .btn-primary:disabled {
+      background: #f5a623;
+      color: #111;
+      opacity: 1;
+    }
+
+    /* Instructions */
+    .instructions {
+      background: #fff8e6;
+      border: 1px solid #f5a62355;
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 16px;
+      font-size: 13px;
+      line-height: 1.8;
+      color: #555;
+    }
+    .instructions strong {
+      color: #222;
+    }
+
+    /* Success Screen */
+    .success-screen {
+      display: none;
+      text-align: center;
+      padding: 40px 20px;
+    }
+    .success-screen.show {
+      display: block;
+    }
+    .success-icon {
+      font-size: 64px;
+      margin-bottom: 16px;
+    }
+    .success-screen h2 {
+      font-size: 20px;
+      margin-bottom: 8px;
+    }
+    .success-screen p {
+      color: #666;
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    .code-box {
+      background: #000;
+      color: #f5a623;
+      font-size: 20px;
+      font-weight: 800;
+      padding: 16px;
+      border-radius: 12px;
+      margin: 20px 0;
+      letter-spacing: 2px;
+      direction: ltr;
+    }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      padding: 16px;
+      font-size: 12px;
+      color: #888;
+    }
+
+    /* Waiting state */
+    .waiting-box {
+      display: none;
+      background: #fff;
+      border-radius: 14px;
+      padding: 24px;
+      text-align: center;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.06);
+    }
+    .waiting-box.show {
+      display: block;
+    }
+    .my-cards { background:#fff; border-radius:14px; padding:14px; margin:16px 0; box-shadow:0 1px 5px rgba(0,0,0,.06); }
+    .my-card-item { border:1px solid #eee; border-radius:10px; padding:12px; margin-top:10px; }
+    .my-card-item .code { font-weight:800; letter-spacing:1px; direction:ltr; text-align:right; font-size:16px; color:#111; }
+    .my-card-item .meta { font-size:12px; color:#666; margin-top:4px; }
+    .lookup-row { display:flex; gap:8px; }
+    .lookup-row input { flex:1; }
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid #eee;
+      border-top-color: #f5a623;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 14px;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#000000" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  <meta name="apple-mobile-web-app-title" content="كرت شبكة" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <script src="config.js"></script>
+  <script src="api.js"></script>
+</head>
+<body>
+  <div class="app">
+    <!-- Header -->
+    <div class="header">
+      <div class="logo-circle">🦅</div>
+      <h1>كرت شبكة</h1>
+      <p>اختر باقتك وأتم الدفع بسهولة</p>
+    </div>
+
+    <div class="content" id="main-content">
+      <!-- Step 1: Choose Package -->
+      <div class="my-cards" id="my-cards-box">
+        <div class="section-title" style="margin-bottom:8px">كروتي في الصفحة دي</div>
+        <div class="lookup-row">
+          <input type="tel" id="lookup-phone" placeholder="اكتب رقمك لعرض كروتك" dir="ltr" />
+          <button type="button" class="copy-btn" id="lookup-btn">عرض</button>
+        </div>
+        <div id="my-cards-list"></div>
+      </div>
+      <div class="section-title">اختر الباقة</div>
+      <div class="totals-bar" id="totals-bar"></div>
+      <div class="packages" id="packages-list">
+        <!-- Filled by JS -->
+      </div>
+
+      <!-- Step 2: Payment -->
+      <div class="payment-box" id="payment-box">
+        <h3>إتمام الدفع</h3>
+
+        <div class="instructions">
+          <strong>طريقة الدفع:</strong><br>
+          1. انسخ رقم المحفظة<br>
+          2. حوّل <b>المبلغ المطلوب</b> الظاهر تحت<br>
+          3. اكتب رقم المحفظة اللي حوّلت منها<br>
+          4. اضغط "تم التحويل" وانتظر التأكيد
+        </div>
+
+        <div class="amount-box">
+          <div class="lbl">المبلغ المطلوب تحويله</div>
+          <div class="val" id="required-amount">اختار الباقة أولاً</div>
+        </div>
+
+        <div class="section-title" style="font-size:13px">اختر طريقة الدفع</div>
+        <div class="wallet-list" id="wallets-list"></div>
+
+        <div class="form-group">
+          <label>رقم هاتفك (هيتحفظ عليه الكارت هنا في الصفحة)</label>
+          <input type="tel" id="customer-phone" placeholder="01xxxxxxxxx" dir="ltr" />
+        </div>
+        <div class="form-group">
+          <label>الرقم المحوّل منه (محفظتك)</label>
+          <input type="tel" id="payer-from" placeholder="رقم فودافون كاش اللي حولت منه" dir="ltr" />
+        </div>
+
+        <div class="form-group">
+          <label>اسمك (اختياري)</label>
+          <input type="text" id="customer-name" placeholder="الاسم" />
+        </div>
+
+        <button type="button" class="btn btn-primary" id="confirm-btn">تم التحويل - تأكيد الطلب</button>
+      </div>
+
+      <!-- Waiting -->
+      <div class="waiting-box" id="waiting-box">
+        <div class="spinner"></div>
+        <h3 style="margin-bottom:8px">في انتظار تأكيد التحويل...</h3>
+        <p style="color:#666;font-size:13px;line-height:1.7">
+          استنى شوية، النظام بيراجع رسالة التحويل<br>
+          وهيبعتلك الكارت أول ما يتأكد
+        </p>
+      </div>
+    </div>
+
+    <!-- Success -->
+    <div class="success-screen" id="success-screen">
+      <div class="success-icon">✅</div>
+      <h2>تم تأكيد الدفع!</h2>
+      <p>الكارت ظهر هنا واتسجل في صفحتك</p>
+      <div class="code-box" id="card-code">CARD-XXXXXXXX</div>
+      <p id="success-pkg" style="font-size:13px;margin-top:8px"></p>
+      <p style="font-size:13px">محفوظ على رقم<br><span id="success-phone"></span><br>مفيش واتساب — افتح الصفحة بنفس الرقم تلاقيه</p>
+      <button class="btn btn-primary" id="copy-card-btn" style="margin-top:16px;max-width:280px">نسخ الكود</button>
+      <div id="success-saved-list" style="text-align:right;margin-top:18px"></div>
+      <button class="btn" style="margin-top:10px;max-width:280px;background:#eee" onclick="location.reload()">رجوع لكروتي وشراء كارت آخر</button>
+    </div>
+
+    <div class="footer">
+      للتواصل: 01023545726
+    </div>
+  </div>
+
+  <script>
+    // Shared DB helpers (same as admin)
+    
+    async function loadFromApi() {
+      const API = window.API_BASE || '';
+      if (!API) return false;
+      try {
+        const [pkgs, wallets] = await Promise.all([
+          fetch(API + '/api/packages').then(r => r.json()),
+          fetch(API + '/api/wallets').then(r => r.json())
+        ]);
+        if (Array.isArray(pkgs) && pkgs.length) {
+          // map to local shape for rendering
+          window._apiPackages = pkgs;
+          window._apiWallets = wallets;
+          return true;
+        }
+      } catch (e) { console.log(e); }
+      return false;
+    }
+
+    const DB = {
+      get(key, def = []) {
+        try { return JSON.parse(localStorage.getItem('ks_' + key)) || def; }
+        catch { return def; }
+      },
+      set(key, val) {
+        localStorage.setItem('ks_' + key, JSON.stringify(val));
+      }
+    };
+
+    // Default data if empty
+    function ensureData() {
+      if (!localStorage.getItem('ks_initialized')) {
+        // Redirect-like: create minimal data
+        DB.set('packages', [
+          { id: 1, name: 'باقة 100 جيجا', price: 120, cards: 30, active: true },
+          { id: 2, name: 'باقة 50 جيجا', price: 70, cards: 45, active: true },
+          { id: 3, name: 'باقة 20 جيجا', price: 35, cards: 40, active: true },
+          { id: 4, name: 'باقة مكالمات', price: 50, cards: 15, active: true },
+          { id: 5, name: 'باقة سوشيال', price: 40, cards: 12, active: true },
+        ]);
+        DB.set('wallets', [
+          { id: 1, name: 'فودافون كاش', number: '01012345678', balance: 0 },
+          { id: 2, name: 'أورانج كاش', number: '01234567890', balance: 0 },
+        ]);
+        // Generate some cards
+        const cards = [];
+        for (let i = 0; i < 142; i++) {
+          cards.push({
+            id: i + 1,
+            code: 'CARD-' + Math.random().toString(36).substring(2, 10).toUpperCase(),
+            packageId: (i % 5) + 1,
+            status: 'available',
+            soldAt: null,
+            customer: null
+          });
+        }
+        DB.set('cards', cards);
+        DB.set('sales', []);
+        DB.set('customers', []);
+        DB.set('pending', []);
+        localStorage.setItem('ks_initialized', '1');
+      }
+    }
+
+    let selectedPackage = null;
+    let selectedWallet = null;
+
+
+    function myKey(phone){ return 'ks_mycards_' + String(phone||'').trim(); }
+    function loadLocalCards(phone){
+      try { return JSON.parse(localStorage.getItem(myKey(phone))||'[]'); } catch(e){ return []; }
+    }
+    function saveMyCard(item){
+      if(!item || !item.phone || !item.code) return;
+      var list = loadLocalCards(item.phone);
+      if(list.some(function(x){ return x.code === item.code; })) return;
+      list.unshift(item);
+      localStorage.setItem(myKey(item.phone), JSON.stringify(list));
+      localStorage.setItem('ks_last_phone', item.phone);
+    }
+    function renderMyCards(list){
+      var box = document.getElementById('my-cards-list');
+      if(!box) return;
+      if(!list || !list.length){
+        box.innerHTML = '<p style="font-size:13px;color:#888;margin-top:10px">لا توجد كروت محفوظة على الرقم ده</p>';
+        return;
+      }
+      box.innerHTML = list.map(function(c){
+        return '<div class="my-card-item"><div class="code">'+c.code+'</div><div class="meta">'+(c.packageName||'')+' — '+(c.price||'')+' ج<br>'+(c.date||'')+'</div><button class="copy-btn" type="button" data-code="'+c.code+'" style="margin-top:8px">نسخ</button></div>';
+      }).join('');
+      box.querySelectorAll('[data-code]').forEach(function(b){
+        b.addEventListener('click', function(){ copyNumber(b.getAttribute('data-code')); });
+      });
+    }
+    async function showMyCards(phone){
+      phone = String(phone||'').trim();
+      if(!phone){ renderMyCards([]); return; }
+      var local = loadLocalCards(phone);
+      if(window.USE_API || window.API_BASE){
+        try{
+          var r = await fetch((window.API_BASE||'') + '/api/my-cards?phone=' + encodeURIComponent(phone));
+          var remote = await r.json();
+          if(Array.isArray(remote)){
+            remote.forEach(function(x){ saveMyCard({code:x.code, packageName:x.packageName, price:x.price, date:x.date, phone:phone}); });
+            local = loadLocalCards(phone);
+          }
+        }catch(e){}
+      }
+      renderMyCards(local);
+    }
+    function revealCard(code, phone, pkg, price){
+      saveMyCard({ code: code, phone: phone, packageName: pkg||'', price: price||'', date: new Date().toLocaleString('ar-EG') });
+      document.getElementById('main-content').style.display = 'none';
+      document.getElementById('card-code').textContent = code;
+      document.getElementById('success-phone').textContent = phone;
+      var sp = document.getElementById('success-pkg');
+      if(sp) sp.textContent = (pkg||'') + (price ? (' — ' + price + ' ج') : '');
+      document.getElementById('success-screen').classList.add('show');
+      var hold = document.getElementById('success-saved-list');
+      if (hold) {
+        var all = loadLocalCards(phone);
+        hold.innerHTML = '<div class="section-title">كل كروتك المحفوظة هنا</div>' + all.map(function(c){
+          return '<div class="my-card-item"><div class="code">'+c.code+'</div><div class="meta">'+(c.packageName||'')+' — '+(c.price||'')+' ج</div></div>';
+        }).join('');
+      }
+    }
+
+    function renderPackages() {
+      const packages = (window._apiPackages || DB.get('packages').filter(p => p.active !== false));
+      const cards = DB.get('cards');
+      const list = document.getElementById('packages-list');
+      const availAll = cards.filter(c => c.status === 'available').length;
+      const usedAll = cards.filter(c => c.status === 'used').length;
+      const bar = document.getElementById('totals-bar');
+      if (bar) {
+        bar.innerHTML = '<div><div class="n">'+packages.length+'</div><div class="l">باقات</div></div>'
+          + '<div><div class="n">'+availAll+'</div><div class="l">كروت متاحة</div></div>'
+          + '<div><div class="n">'+usedAll+'</div><div class="l">مباعة</div></div>';
+      }
+
+      list.innerHTML = packages.map(p => {
+        const available = cards.filter(c => Number(c.packageId) === Number(p.id) && c.status === 'available').length;
+        const disabled = available === 0;
+        return `
+          <div class="package-card ${disabled ? 'disabled' : ''}" data-id="${p.id}" style="${disabled ? 'opacity:0.5;pointer-events:none' : ''}">
+            <div class="package-icon">🔑</div>
+            <div class="package-info">
+              <div class="package-name">${p.name}</div>
+              <div class="package-desc">${available} كارت متاح</div>
+            </div>
+            <div class="package-price">${p.price} <span>ج</span></div>
+          </div>
+        `;
+      }).join('');
+
+      list.querySelectorAll('.package-card').forEach(card => {
+        card.addEventListener('click', () => {
+          list.querySelectorAll('.package-card').forEach(c => c.classList.remove('selected'));
+          card.classList.add('selected');
+          const id = Number(card.getAttribute('data-id'));
+          selectedPackage = packages.find(p => Number(p.id) === id);
+          var amt = document.getElementById('required-amount');
+          if (amt && selectedPackage) amt.textContent = selectedPackage.price + ' ج';
+          document.getElementById('payment-box').classList.add('show');
+          document.getElementById('payment-box').scrollIntoView({ behavior: 'smooth' });
+        });
+      });
+    }
+
+    function renderWallets() {
+      const wallets = (window._apiWallets || DB.get('wallets'));
+      const list = document.getElementById('wallets-list');
+
+      list.innerHTML = wallets.map(w => `
+        <div class="wallet-item" data-id="${w.id}">
+          <div class="icon">${(w.name||'').indexOf('فودافون')>=0 ? '🔴' : '🟠'}</div>
+          <div class="info">
+            <div class="name">${w.name}</div>
+            <div class="number">${w.number}</div>
+          </div>
+          <button class="copy-btn" type="button">نسخ</button>
+        </div>
+      `).join('');
+
+      list.querySelectorAll('.wallet-item').forEach(item => {
+        item.addEventListener('click', () => {
+          list.querySelectorAll('.wallet-item').forEach(i => i.classList.remove('selected'));
+          item.classList.add('selected');
+          selectedWallet = wallets.find(w => String(w.id) === String(item.getAttribute('data-id')));
+        });
+        var copyBtn = item.querySelector('.copy-btn');
+        if (copyBtn) {
+          copyBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            var w = wallets.find(x => String(x.id) === String(item.getAttribute('data-id')));
+            if (w) copyNumber(w.number);
+          });
+        }
+      });
+      if (wallets.length && !selectedWallet) {
+        var first = list.querySelector('.wallet-item');
+        if (first) first.click();
+      }
+    }
+
+    function copyNumber(num) {
+      navigator.clipboard.writeText(num).then(() => {
+        alert('تم نسخ الرقم: ' + num);
+      }).catch(() => {
+        prompt('انسخ الرقم:', num);
+      });
+    }
+
+    document.getElementById('confirm-btn').addEventListener('click', async () => {
+      const phone = document.getElementById('customer-phone').value.trim();
+      const payerFrom = (document.getElementById('payer-from').value || '').trim();
+      const name = document.getElementById('customer-name').value.trim();
+
+      if (!selectedPackage) { alert('اختار الباقة أولاً عشان يظهر المبلغ المطلوب'); return; }
+      if (!selectedWallet) { alert('اختار طريقة الدفع'); return; }
+      if (!phone || phone.length < 10) { alert('اكتب رقم هاتفك صح'); return; }
+      if (!payerFrom || payerFrom.length < 10) { alert('اكتب الرقم اللي حوّلت منه'); return; }
+
+      document.getElementById('payment-box').classList.remove('show');
+      document.getElementById('packages-list').style.display = 'none';
+      document.querySelector('.section-title').style.display = 'none';
+      document.getElementById('waiting-box').classList.add('show');
+
+      const API = window.API_BASE || '';
+
+      if (API) {
+        // وضع السيرفر + جسر الرسائل
+        try {
+          const res = await fetch(API + '/api/orders', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              packageId: selectedPackage.id,
+              phone,
+              name,
+              walletId: selectedWallet.id,
+              payerFrom
+            })
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            alert(data.error || 'فشل إنشاء الطلب');
+            location.reload();
+            return;
+          }
+          const orderId = data.order.id;
+          // انتظر تأكيد الدفع من جسر الرسائل
+          const poll = setInterval(async () => {
+            try {
+              const r = await fetch(API + '/api/orders/' + orderId);
+              const st = await r.json();
+              if (st.status === 'completed') {
+                clearInterval(poll);
+                revealCard(st.cardCode, st.phone, selectedPackage && selectedPackage.name, selectedPackage && selectedPackage.price);
+              }
+            } catch (e) {}
+          }, 3000);
+        } catch (e) {
+          alert('تعذر الاتصال بالسيرفر');
+          location.reload();
+        }
+      } else {
+        // وضع تجريبي محلي (بدون سيرفر)
+        const pending = DB.get('pending');
+        const order = {
+          id: Date.now(),
+          packageId: selectedPackage.id,
+          packageName: selectedPackage.name,
+          price: selectedPackage.price,
+          phone,
+          name,
+          walletId: selectedWallet.id,
+          walletName: selectedWallet.name,
+          payerFrom,
+          status: 'pending',
+          createdAt: new Date().toISOString()
+        };
+        pending.push(order);
+        DB.set('pending', pending);
+        var waitBox = document.getElementById('waiting-box');
+        waitBox.querySelector('p').innerHTML = 'الطلب اتسجل. الكارت <b>مش هينزل</b> غير بعد ما التحويل يتأكد.<br>المبلغ المطلوب: <b>'+order.price+' ج</b><br>استنى تأكيد المدير أو الجسر.';
+        var poll = setInterval(function() {
+          var sales = DB.get('sales') || [];
+          var found = sales.find(function(s){ return String(s.orderId) === String(order.id); });
+          if (found && found.cardCode) {
+            clearInterval(poll);
+            revealCard(found.cardCode, found.phone, found.packageName, found.price);
+          }
+        }, 2000);
+      }
+    });
+
+    function approveOrder(order) {
+      const cards = DB.get('cards');
+      const card = cards.find(c => c.packageId === order.packageId && c.status === 'available');
+
+      if (!card) {
+        alert('عذراً، انتهت الكروت لهذه الباقة. تواصل معنا.');
+        location.reload();
+        return;
+      }
+
+      // Mark card used
+      card.status = 'used';
+      card.soldAt = new Date().toISOString();
+      card.customer = order.phone;
+      DB.set('cards', cards);
+
+      // Add sale
+      const sales = DB.get('sales');
+      sales.push({
+        id: Date.now(),
+        packageId: order.packageId,
+        packageName: order.packageName,
+        price: order.price,
+        phone: order.phone,
+        name: order.name,
+        cardCode: card.code,
+        date: new Date().toLocaleString('ar-EG'),
+        type: 'auto',
+        wallet: order.walletName
+      });
+      DB.set('sales', sales);
+
+      // Update customer
+      let customers = DB.get('customers');
+      let cust = customers.find(c => c.phone === order.phone);
+      if (cust) {
+        cust.purchases = (cust.purchases || 0) + 1;
+        cust.name = order.name || cust.name;
+      } else {
+        customers.push({ phone: order.phone, name: order.name, purchases: 1 });
+      }
+      DB.set('customers', customers);
+
+      // Remove from pending
+      let pending = DB.get('pending');
+      pending = pending.filter(p => p.id !== order.id);
+      DB.set('pending', pending);
+
+      // Show success
+      revealCard(card.code, order.phone, order.packageName, order.price);
+    }
+
+    // Init
+    (async () => {
+      if (window.bootKartApi) await window.bootKartApi();
+      const fromApi = await loadFromApi();
+      if (!fromApi) ensureData();
+      renderPackages();
+      renderWallets();
+      var last = localStorage.getItem('ks_last_phone') || '';
+      if(last){
+        document.getElementById('customer-phone').value = last;
+        document.getElementById('lookup-phone').value = last;
+        showMyCards(last);
+      }
+      document.getElementById('lookup-btn').addEventListener('click', function(){
+        var ph = document.getElementById('lookup-phone').value.trim();
+        document.getElementById('customer-phone').value = ph;
+        showMyCards(ph);
+      });
+      var copyNew = document.getElementById('copy-card-btn');
+      if(copyNew) copyNew.addEventListener('click', function(){
+        copyNumber(document.getElementById('card-code').textContent);
+      });
+    })();
+  </script>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(regs) {
+        regs.forEach(function(r) { r.unregister(); });
+      });
+    }
+  </script>
+</body>
+</html>
