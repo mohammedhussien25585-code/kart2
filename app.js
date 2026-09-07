@@ -624,15 +624,23 @@ function renderArchive() {
   return `
     ${pendingHtml}
     <div class="form-card">
-      <p style="font-size:13px;color:#666;margin-bottom:12px;line-height:1.7">
-        هنا تظهر رسائل التأكيد الواردة من <strong>جسر الرسائل</strong>.<br>
-        لو الجسر مش شغال استخدم <strong>تأكيد يدوي</strong> على الطلب المعلق.
+      <h3 style="font-size:16px;margin-bottom:8px">جسر موبايلك</h3>
+      <p style="font-size:13px;color:#666;margin-bottom:12px;line-height:1.8">
+        على موبايل فودافون كاش: لما توصل رسالة التحويل افتحها → انسخ النص → الصقه هنا → تأكيد.
       </p>
       <div class="form-group">
-        <label>تجربة رسالة تحويل (بدل الجسر)</label>
-        <input type="number" id="sim-amount" placeholder="اكتب المبلغ زي 120" />
+        <label>الصق رسالة فودافون كاش</label>
+        <textarea id="sms-body" rows="4" placeholder="تم استلام مبلغ 120 جنيه من ..."></textarea>
       </div>
-      <button class="btn btn-primary" id="sim-sms-btn">محاكاة رسالة وتحويل الكارت</button>
+      <div class="form-group">
+        <label>أو اكتب المبلغ فقط</label>
+        <input type="number" id="sim-amount" placeholder="120" />
+      </div>
+      <button class="btn btn-primary" id="sim-sms-btn">تأكيد التحويل وإرسال الكارت</button>
+      <button class="btn" id="clear-msg-btn" style="margin-top:8px;background:#eee">مسح سجل الانتظار</button>
+    </div>
+    <div class="form-card">
+      <h3 style="font-size:14px;margin-bottom:10px">آخر الرسائل</h3>
       <div class="table-wrap">
         <table>
           <thead>
@@ -642,7 +650,7 @@ function renderArchive() {
               <th>الحالة</th>
             </tr>
           </thead>
-          <tbody>${rows || '<tr><td colspan="3" style="text-align:center;padding:30px">لا توجد رسائل بعد<br><small>هتظهر هنا لما يتوصل جسر الرسائل</small></td></tr>'}</tbody>
+          <tbody>${rows || '<tr><td colspan="3" style="text-align:center;padding:24px">لا توجد رسائل</td></tr>'}</tbody>
         </table>
       </div>
     </div>
@@ -821,6 +829,10 @@ function attachPageEvents(page) {
   }
   if (page === 'archive' || page === 'sms-bridge' || page === 'pending') {
     bindClick('sim-sms-btn', simulateIncomingSms);
+    bindClick('clear-msg-btn', function () {
+      DB.set('messages', []);
+      openPage(page);
+    });
   }
   if (page === 'sms-device') {
     bindClick('regen-device-btn', regenDeviceCode);
@@ -1050,14 +1062,19 @@ async function confirmPending(orderId) {
 }
 
 function simulateIncomingSms() {
-  const amount = parseFloat(document.getElementById('sim-amount').value);
-  if (!amount) { alert('اكتب المبلغ'); return; }
+  const body = ((document.getElementById('sms-body') || {}).value || '').trim();
+  var amount = parseFloat((document.getElementById('sim-amount') || {}).value);
+  if (!amount && body) {
+    var m = body.replace(/,/g, '').match(/(\d+(?:\.\d+)?)\s*(جنيه|ج\.م|EGP|ج)/i) || body.match(/(?:مبلغ|استلام|تحويل)\s*(\d+)/);
+    if (m) amount = parseFloat(m[1]);
+  }
+  if (!amount) { alert('اكتب المبلغ أو الصق الرسالة كاملة'); return; }
   const pending = (DB.get('pending') || []).filter(o => Number(o.price) === amount);
   const order = pending.sort(function(a,b){ return new Date(a.createdAt) - new Date(b.createdAt); })[0];
   const messages = DB.get('messages') || [];
   messages.unshift({
     id: Date.now(),
-    body: 'تم استلام مبلغ ' + amount + ' جنيه',
+    body: body || ('تم استلام مبلغ ' + amount + ' جنيه'),
     amount: amount,
     matched: !!order,
     receivedAt: new Date().toISOString()
@@ -1098,6 +1115,14 @@ function fulfillPendingOrder(order, type) {
     wallet: order.walletName
   });
   DB.set('sales', sales);
+  try {
+    var key = 'ks_mycards_' + String(order.phone || '').trim();
+    var mine = JSON.parse(localStorage.getItem(key) || '[]');
+    if (!mine.some(function (x) { return x.code === card.code; })) {
+      mine.unshift({ code: card.code, phone: order.phone, packageName: order.packageName, price: order.price, date: new Date().toLocaleString('ar-EG') });
+      localStorage.setItem(key, JSON.stringify(mine));
+    }
+  } catch (e) {}
 
   let customers = DB.get('customers') || [];
   let cust = customers.find(c => c.phone === order.phone);
@@ -1463,7 +1488,7 @@ function wireAuth() {
   window.handleLogin = handleLogin;
   window.showLogin = showLogin;
   window.showAdminApp = showAdminApp;
-  if (currentAdmin() || location.hash === '#go') showAdminApp();
+  if (currentAdmin()) showAdminApp();
   else showLogin(false);
 })();
 
