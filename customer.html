@@ -2,8 +2,9 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
+  <meta http-equiv="Cache-Control" content="no-store" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>كرت شبكة - شراء كارت</title>
+  <title>كرت شبكة - شراء كارت v6</title>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -745,8 +746,7 @@
         waitBox.querySelector('p').innerHTML = 'الطلب اتسجل. الكارت <b>مش هينزل</b> غير بعد ما التحويل يتأكد.<br>المبلغ المطلوب: <b>'+order.price+' ج</b><br>استنى تأكيد المدير أو الجسر.';
         var poll = setInterval(function() {
           var sales = DB.get('sales') || [];
-          var found = sales.find(function(s){ return String(s.orderId) === String(order.id) || (s.phone===order.phone && Number(s.price)===Number(order.price) && !s._shown); });
-          var still = (DB.get('pending') || []).find(function(p){ return String(p.id) === String(order.id); });
+          var found = sales.find(function(s){ return String(s.orderId) === String(order.id); });
           if (found && found.cardCode) {
             clearInterval(poll);
             revealCard(found.cardCode, found.phone, found.packageName, found.price);
