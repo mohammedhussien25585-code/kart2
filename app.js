@@ -1460,8 +1460,11 @@ function wireAuth() {
   } catch (e) {}
   try { initData(); } catch (e) { initData(); }
   wireAuth();
-  if (currentAdmin()) showAdminApp();
-  else showLogin(getAdmins().length === 0);
+  window.handleLogin = handleLogin;
+  window.showLogin = showLogin;
+  window.showAdminApp = showAdminApp;
+  if (currentAdmin() || location.hash === '#go') showAdminApp();
+  else showLogin(false);
 })();
 
 window.startEditPackage = startEditPackage;
