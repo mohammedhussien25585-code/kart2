@@ -15,9 +15,19 @@
   <meta name="apple-mobile-web-app-title" content="كرت شبكة" />
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <meta name="mobile-web-app-capable" content="yes" />
+  <style>
+    html.authed #login-screen { display: none !important; }
+    html.authed #admin-app,
+    html.authed #admin-app.locked { display: block !important; }
+  </style>
+  <script>
+    if (sessionStorage.getItem('ks_admin') || localStorage.getItem('ks_admin_keep')) {
+      document.documentElement.classList.add('authed');
+    }
+  </script>
 </head>
 <body>
-  <div class="login-screen show" id="login-screen">
+  <div class="login-screen" id="login-screen">
     <div style="text-align:center;font-size:42px">🦅</div>
     <h1>كرت شبكة</h1>
     <p id="login-hint">دخول المدير</p>
