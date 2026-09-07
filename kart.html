@@ -572,7 +572,14 @@ tr:last-child td {
   function applyCloud(data) {
     if (!data || typeof data !== 'object') return;
     ['pending', 'sales', 'customers', 'messages', 'cards', 'packages', 'wallets', 'offers'].forEach(function (k) {
-      if (data[k]) localStorage.setItem('ks_' + k, JSON.stringify(data[k]));
+      if (data[k] == null) return;
+      if (Array.isArray(data[k]) && data[k].length === 0) {
+        try {
+          var cur = JSON.parse(localStorage.getItem('ks_' + k) || '[]') || [];
+          if (cur.length) return;
+        } catch (e) {}
+      }
+      localStorage.setItem('ks_' + k, JSON.stringify(data[k]));
     });
     if (data.cusers) localStorage.setItem('ks_cusers', JSON.stringify(data.cusers));
     if (data.mycards) {
