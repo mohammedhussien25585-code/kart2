@@ -248,11 +248,15 @@ function renderManualSend() {
         <select id="ms-package">${options}</select>
       </div>
       <div class="form-group">
-        <label>رقم العميل (واتساب)</label>
+        <label>رقم حساب العميل (نفس رقم تسجيل الدخول)</label>
         <input type="tel" id="ms-phone" placeholder="01xxxxxxxxx" dir="ltr" />
       </div>
       <div class="form-group">
-        <label>اسم العميل (اختياري)</label>
+        <label>أو اختار عميل مسجّل</label>
+        <select id="ms-cust-select"><option value="">—</option></select>
+      </div>
+      <div class="form-group">
+        <label>الاسم (اختياري)</label>
         <input type="text" id="ms-name" placeholder="اسم العميل" />
       </div>
       <div class="form-group">
@@ -531,13 +535,15 @@ function renderPaymentReview() {
       <td><span class="badge ${m.matched ? 'badge-success' : 'badge-warning'}">${m.matched ? 'مطابقة' : 'مراجعة'}</span></td>
       <td>
         ${!m.matched ? `<button class="btn" style="padding:4px 8px;font-size:11px;background:#27ae60;color:#fff" onclick="approvePayment('${m.id}')">تأكيد</button>` : ''}
+        <button class="btn" style="padding:4px 8px;font-size:11px;background:#e74c3c;color:#fff" onclick="deleteMessage('${m.id}')">مسح</button>
       </td>
     </tr>
   `).join('');
   return `
     <div class="form-card">
       <h3 style="font-size:16px;margin-bottom:8px">مراجعة رسائل الدفع</h3>
-      <p style="font-size:13px;color:#555;margin-bottom:12px">تحويلات فودافون كاش الواردة من جهاز الفحص. أكّد اللي مطابق لطلب معلق (${pending.length} طلب).</p>
+      <p style="font-size:13px;color:#555;margin-bottom:12px">تحويلات فودافون كاش. الطلبات المعلقة الآن: ${pending.length}. لو مفيش طلب مطابق امسح الرسالة.</p>
+      <button class="btn" id="clear-review-btn" style="background:#eee;margin-bottom:12px">مسح كل الرسائل</button>
       <div class="table-wrap">
         <table>
           <thead><tr><th>الوقت</th><th>المرسل</th><th>المبلغ</th><th>الرسالة</th><th>الحالة</th><th></th></tr></thead>
@@ -566,8 +572,20 @@ async function approvePayment(id) {
   if (!msg) return;
   const pending = DB.get('pending') || [];
   const order = pending.filter(o => !msg.amount || Number(o.price) === Number(msg.amount))[0];
-  if (!order) { alert('لا يوجد طلب معلق مطابق'); return; }
+  if (!order) {
+    msg.matched = false;
+    msg.note = 'no-pending';
+    DB.set('messages', messages.filter(function (x) { return String(x.id) !== String(id); }));
+    alert('مفيش طلب معلق بنفس المبلغ. الرسالة اتشالت.');
+    openPage('payment-review');
+    return;
+  }
   fulfillPendingOrder(order, 'review');
+}
+function deleteMessage(id) {
+  var messages = (DB.get('messages') || []).filter(function (m) { return String(m.id) !== String(id); });
+  DB.set('messages', messages);
+  openPage('payment-review');
 }
 
 function regenDeviceCode() {
@@ -708,6 +726,8 @@ function renderSettings() {
         <input type="text" id="set-whatsapp" value="${escapeHtml(settings.whatsappToken || '')}" placeholder="WhatsApp Token" dir="ltr" style="text-align:left" />
       </div>
       <button class="btn btn-primary" id="save-settings">💾 حفظ الإعدادات</button>
+      <p style="font-size:13px;color:#555;margin-top:12px;line-height:1.8">ابعث للعميل الرابط ده عشان يرتبط بحسابك:<br>
+      <b dir="ltr" id="admin-share-link" style="color:#0a7;word-break:break-all"></b></p>
     </div>
     <div class="form-card">
       <h3 style="font-size:14px;margin-bottom:10px">إضافة مدير جديد</h3>
@@ -809,6 +829,7 @@ function attachPageEvents(page) {
   if (page === 'manual-send') {
     bindClick('ms-send-btn', doManualSend);
     renderManualHistory();
+    fillManualCustomers();
   }
   if (page === 'feed-cards') {
     bindClick('feed-btn', doFeedCards);
@@ -827,11 +848,15 @@ function attachPageEvents(page) {
       });
     });
   }
-  if (page === 'archive' || page === 'sms-bridge' || page === 'pending') {
+  if (page === 'archive' || page === 'sms-bridge' || page === 'pending' || page === 'payment-review') {
     bindClick('sim-sms-btn', simulateIncomingSms);
     bindClick('clear-msg-btn', function () {
       DB.set('messages', []);
       openPage(page);
+    });
+    bindClick('clear-review-btn', function () {
+      DB.set('messages', []);
+      openPage('payment-review');
     });
   }
   if (page === 'sms-device') {
@@ -858,6 +883,9 @@ function attachPageEvents(page) {
   if (page === 'settings') {
     bindClick('save-settings', doSaveSettings);
     bindClick('add-admin-btn', addAdminUser);
+    var sl=document.getElementById('admin-share-link');
+    var phone=(DB.get('settings',{})||{}).phone||'01023545726';
+    if(sl) sl.textContent = location.origin + location.pathname.replace(/index\.html$/,'') + 'customer.html?admin=' + phone;
     renderAdminsList();
   }
   if (page === 'backup') {
@@ -885,23 +913,51 @@ function attachPageEvents(page) {
 }
 
 // ========== Actions ==========
+function fillManualCustomers() {
+  var sel = document.getElementById('ms-cust-select');
+  if (!sel) return;
+  var seen = {};
+  var opts = '<option value="">— اختار حساب عميل —</option>';
+  (DB.get('customers') || []).forEach(function (c) {
+    if (!c.phone || seen[c.phone]) return;
+    seen[c.phone] = 1;
+    opts += '<option value="' + escapeHtml(c.phone) + '">' + escapeHtml((c.name ? c.name + ' — ' : '') + c.phone) + '</option>';
+  });
+  try {
+    (JSON.parse(localStorage.getItem('ks_cusers') || '[]') || []).forEach(function (c) {
+      if (!c.phone || seen[c.phone]) return;
+      seen[c.phone] = 1;
+      opts += '<option value="' + escapeHtml(c.phone) + '">' + escapeHtml(c.phone) + ' (مسجل دخول)</option>';
+    });
+  } catch (e) {}
+  sel.innerHTML = opts;
+  sel.onchange = function () {
+    if (sel.value) document.getElementById('ms-phone').value = sel.value;
+  };
+}
 function doManualSend() {
   const packageId = parseInt(document.getElementById('ms-package').value);
-  const phone = document.getElementById('ms-phone').value.trim();
+  var phone = document.getElementById('ms-phone').value.trim();
   const name = document.getElementById('ms-name').value.trim();
   const notes = document.getElementById('ms-notes').value.trim();
+  var pick = document.getElementById('ms-cust-select');
+  if ((!phone || phone.length < 10) && pick && pick.value) phone = pick.value.trim();
+  if (name && (!phone || phone.length < 10)) {
+    var byName = (DB.get('customers') || []).find(function (c) { return (c.name || '') === name && c.phone; });
+    if (byName) phone = byName.phone;
+  }
 
   if (!phone || phone.length < 10) {
-    alert('من فضلك أدخل رقم العميل بشكل صحيح');
+    alert('اكتب رقم حساب العميل زي ما هو في تسجيل الدخول');
     return;
   }
 
   const packages = DB.get('packages');
-  const pkg = packages.find(p => p.id === packageId);
+  const pkg = packages.find(p => Number(p.id) === Number(packageId));
   if (!pkg) return;
 
   const cards = DB.get('cards');
-  const card = cards.find(c => c.packageId === packageId && c.status === 'available');
+  const card = cards.find(c => Number(c.packageId) === Number(packageId) && c.status === 'available');
 
   if (!card) {
     alert('لا توجد كروت متاحة لهذه الباقة');
@@ -937,8 +993,18 @@ function doManualSend() {
     customers.push({ phone, name: name || '', purchases: 1 });
   }
   DB.set('customers', customers);
+  try {
+    var key = 'ks_mycards_' + phone;
+    var mine = JSON.parse(localStorage.getItem(key) || '[]');
+    if (!mine.some(function (x) { return x.code === card.code; })) {
+      var adminPhone=((DB.get('settings',{})||{}).phone||'01023545726');
+      mine.unshift({ code: card.code, phone: phone, packageName: pkg.name, price: pkg.price, date: new Date().toLocaleString('ar-EG'), admin: adminPhone });
+      localStorage.setItem(key, JSON.stringify(mine));
+    }
+    localStorage.setItem('ks_last_phone', phone);
+  } catch (e) {}
 
-  alert(`✅ تم إرسال الكارت بنجاح\n\nالكود: ${card.code}\nالباقة: ${pkg.name}\nللعميل: ${phone}`);
+  alert('تم تثبيت الكارت في حساب العميل\nالكود: ' + card.code + '\nالحساب: ' + phone + '\nيظهر عنده في كروتي بعد تسجيل الدخول');
   renderManualHistory();
   updateStats();
 }
@@ -1119,7 +1185,8 @@ function fulfillPendingOrder(order, type) {
     var key = 'ks_mycards_' + String(order.phone || '').trim();
     var mine = JSON.parse(localStorage.getItem(key) || '[]');
     if (!mine.some(function (x) { return x.code === card.code; })) {
-      mine.unshift({ code: card.code, phone: order.phone, packageName: order.packageName, price: order.price, date: new Date().toLocaleString('ar-EG') });
+      var adminPhone=((DB.get('settings',{})||{}).phone||'01023545726');
+      mine.unshift({ code: card.code, phone: order.phone, packageName: order.packageName, price: order.price, date: new Date().toLocaleString('ar-EG'), admin: adminPhone });
       localStorage.setItem(key, JSON.stringify(mine));
     }
   } catch (e) {}
@@ -1498,3 +1565,5 @@ window.deletePackage = deletePackage;
 window.confirmPending = confirmPending;
 window.approvePayment = approvePayment;
 window.deleteCard = deleteCard;
+window.deleteMessage = deleteMessage;
+window.approvePayment = approvePayment;
