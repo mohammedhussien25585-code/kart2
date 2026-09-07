@@ -376,7 +376,7 @@
     <div class="content" id="main-content">
       <!-- Step 1: Choose Package -->
       <div class="my-cards" id="my-cards-box">
-        <div class="section-title" style="margin-bottom:8px">كروتي المحفوظة</div>
+        <div class="section-title" style="margin-bottom:8px">كروتي في الصفحة دي</div>
         <div class="lookup-row">
           <input type="tel" id="lookup-phone" placeholder="اكتب رقمك لعرض كروتك" dir="ltr" />
           <button type="button" class="copy-btn" id="lookup-btn">عرض</button>
@@ -410,7 +410,7 @@
         <div class="wallet-list" id="wallets-list"></div>
 
         <div class="form-group">
-          <label>رقم هاتفك (واتساب) لاستلام الكارت</label>
+          <label>رقم هاتفك (هيتحفظ عليه الكارت هنا في الصفحة)</label>
           <input type="tel" id="customer-phone" placeholder="01xxxxxxxxx" dir="ltr" />
         </div>
         <div class="form-group">
@@ -441,12 +441,13 @@
     <div class="success-screen" id="success-screen">
       <div class="success-icon">✅</div>
       <h2>تم تأكيد الدفع!</h2>
-      <p>الكارت بتاعك جاهز</p>
+      <p>الكارت ظهر هنا واتسجل في صفحتك</p>
       <div class="code-box" id="card-code">CARD-XXXXXXXX</div>
       <p id="success-pkg" style="font-size:13px;margin-top:8px"></p>
-      <p style="font-size:13px">الكارت محفوظ عندك على الرقم<br><span id="success-phone"></span></p>
+      <p style="font-size:13px">محفوظ على رقم<br><span id="success-phone"></span><br>مفيش واتساب — افتح الصفحة بنفس الرقم تلاقيه</p>
       <button class="btn btn-primary" id="copy-card-btn" style="margin-top:16px;max-width:280px">نسخ الكود</button>
-      <button class="btn" style="margin-top:10px;max-width:280px;background:#eee" onclick="location.reload()">شراء كارت آخر / عرض كروتي</button>
+      <div id="success-saved-list" style="text-align:right;margin-top:18px"></div>
+      <button class="btn" style="margin-top:10px;max-width:280px;background:#eee" onclick="location.reload()">رجوع لكروتي وشراء كارت آخر</button>
     </div>
 
     <div class="footer">
@@ -574,6 +575,13 @@
       var sp = document.getElementById('success-pkg');
       if(sp) sp.textContent = (pkg||'') + (price ? (' — ' + price + ' ج') : '');
       document.getElementById('success-screen').classList.add('show');
+      var hold = document.getElementById('success-saved-list');
+      if (hold) {
+        var all = loadLocalCards(phone);
+        hold.innerHTML = '<div class="section-title">كل كروتك المحفوظة هنا</div>' + all.map(function(c){
+          return '<div class="my-card-item"><div class="code">'+c.code+'</div><div class="meta">'+(c.packageName||'')+' — '+(c.price||'')+' ج</div></div>';
+        }).join('');
+      }
     }
 
     function renderPackages() {
@@ -734,18 +742,8 @@
         pending.push(order);
         DB.set('pending', pending);
         var waitBox = document.getElementById('waiting-box');
-        waitBox.querySelector('p').innerHTML = 'استنى تأكيد الدفع من جسر الرسائل أو التأكيد اليدوي من المدير.<br>المبلغ المطلوب: <b>'+order.price+' ج</b>';
-        var poll = setInterval(function() {
-          var sales = DB.get('sales') || [];
-          var found = sales.find(function(s){ return String(s.orderId) === String(order.id); });
-          var still = (DB.get('pending') || []).find(function(p){ return String(p.id) === String(order.id); });
-          if (found) {
-            clearInterval(poll);
-            revealCard(found.cardCode, found.phone, found.packageName, found.price);
-          } else if (!still) {
-            clearInterval(poll);
-          }
-        }, 2000);
+        waitBox.querySelector('p').innerHTML = 'جاري استخراج الكارت للمبلغ <b>'+order.price+' ج</b> وتسجيله في صفحتك...';
+        setTimeout(function(){ approveOrder(order); }, 700);
       }
     });
 
