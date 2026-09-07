@@ -37,6 +37,8 @@ body {
   flex-direction: column;
   justify-content: center;
 }
+html.authed .login-screen,
+html.authed .login-screen.show { display: none !important; }
 .login-screen.show { display: flex; }
 .login-screen h1 { text-align: center; font-size: 22px; margin: 10px 0 6px; }
 .login-screen p { text-align: center; color: #bbb; font-size: 13px; margin-bottom: 22px; }
