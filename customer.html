@@ -4,11 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>كرت شبكة - شراء كارت</title>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body {
-      font-family: 'Cairo', sans-serif;
+      font-family: 'Cairo', Tahoma, Arial, sans-serif;
       background: #f0f0f0;
       direction: rtl;
       min-height: 100vh;
@@ -186,8 +186,34 @@
       font-size: 12px;
       font-weight: 700;
       cursor: pointer;
-      font-family: 'Cairo', sans-serif;
+      font-family: 'Cairo', Tahoma, Arial, sans-serif;
     }
+    .amount-box {
+      background: #111;
+      color: #fff;
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .amount-box .lbl { font-size: 13px; opacity: .85; }
+    .amount-box .val { font-size: 26px; font-weight: 800; color: #f5a623; }
+    .pkg-meta { font-size: 12px; color: #777; margin-top: 2px; }
+    .totals-bar {
+      background: #fff;
+      border-radius: 12px;
+      padding: 10px 12px;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-around;
+      text-align: center;
+      box-shadow: 0 1px 5px rgba(0,0,0,.06);
+    }
+    .totals-bar .n { font-weight: 800; font-size: 16px; }
+    .totals-bar .l { font-size: 11px; color: #777; }
+    .btn-primary[disabled] { opacity: 1; background: #f5a623; color: #111; }
 
     .form-group {
       margin-bottom: 14px;
@@ -205,7 +231,7 @@
       border: 1px solid #ddd;
       border-radius: 10px;
       font-size: 14px;
-      font-family: 'Cairo', sans-serif;
+      font-family: 'Cairo', Tahoma, Arial, sans-serif;
       background: #fafafa;
       outline: none;
     }
@@ -221,7 +247,7 @@
       border-radius: 12px;
       font-size: 15px;
       font-weight: 800;
-      font-family: 'Cairo', sans-serif;
+      font-family: 'Cairo', Tahoma, Arial, sans-serif;
       cursor: pointer;
       transition: all 0.2s;
     }
@@ -233,9 +259,9 @@
       background: #e09410;
     }
     .btn-primary:disabled {
-      background: #ccc;
-      color: #666;
-      cursor: not-allowed;
+      background: #f5a623;
+      color: #111;
+      opacity: 1;
     }
 
     /* Instructions */
@@ -308,6 +334,12 @@
     .waiting-box.show {
       display: block;
     }
+    .my-cards { background:#fff; border-radius:14px; padding:14px; margin:16px 0; box-shadow:0 1px 5px rgba(0,0,0,.06); }
+    .my-card-item { border:1px solid #eee; border-radius:10px; padding:12px; margin-top:10px; }
+    .my-card-item .code { font-weight:800; letter-spacing:1px; direction:ltr; text-align:right; font-size:16px; color:#111; }
+    .my-card-item .meta { font-size:12px; color:#666; margin-top:4px; }
+    .lookup-row { display:flex; gap:8px; }
+    .lookup-row input { flex:1; }
     .spinner {
       width: 40px;
       height: 40px;
@@ -327,9 +359,10 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black" />
   <meta name="apple-mobile-web-app-title" content="كرت شبكة" />
-  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <meta name="mobile-web-app-capable" content="yes" />
-  <script src="js/config.js"></script>
+  <script src="config.js"></script>
+  <script src="api.js"></script>
 </head>
 <body>
   <div class="app">
@@ -342,7 +375,16 @@
 
     <div class="content" id="main-content">
       <!-- Step 1: Choose Package -->
+      <div class="my-cards" id="my-cards-box">
+        <div class="section-title" style="margin-bottom:8px">كروتي المحفوظة</div>
+        <div class="lookup-row">
+          <input type="tel" id="lookup-phone" placeholder="اكتب رقمك لعرض كروتك" dir="ltr" />
+          <button type="button" class="copy-btn" id="lookup-btn">عرض</button>
+        </div>
+        <div id="my-cards-list"></div>
+      </div>
       <div class="section-title">اختر الباقة</div>
+      <div class="totals-bar" id="totals-bar"></div>
       <div class="packages" id="packages-list">
         <!-- Filled by JS -->
       </div>
@@ -354,19 +396,26 @@
         <div class="instructions">
           <strong>طريقة الدفع:</strong><br>
           1. انسخ رقم المحفظة<br>
-          2. حوّل المبلغ المطلوب<br>
-          3. اضغط "تم التحويل" وانتظر التأكيد<br>
-          4. هيجيلك الكارت أوتوماتيك
+          2. حوّل <b>المبلغ المطلوب</b> الظاهر تحت<br>
+          3. اكتب رقم المحفظة اللي حوّلت منها<br>
+          4. اضغط "تم التحويل" وانتظر التأكيد
+        </div>
+
+        <div class="amount-box">
+          <div class="lbl">المبلغ المطلوب تحويله</div>
+          <div class="val" id="required-amount">اختار الباقة أولاً</div>
         </div>
 
         <div class="section-title" style="font-size:13px">اختر طريقة الدفع</div>
-        <div class="wallet-list" id="wallets-list">
-          <!-- Filled by JS -->
-        </div>
+        <div class="wallet-list" id="wallets-list"></div>
 
         <div class="form-group">
-          <label>رقم هاتفك (واتساب)</label>
+          <label>رقم هاتفك (واتساب) لاستلام الكارت</label>
           <input type="tel" id="customer-phone" placeholder="01xxxxxxxxx" dir="ltr" />
+        </div>
+        <div class="form-group">
+          <label>الرقم المحوّل منه (محفظتك)</label>
+          <input type="tel" id="payer-from" placeholder="رقم فودافون كاش اللي حولت منه" dir="ltr" />
         </div>
 
         <div class="form-group">
@@ -374,7 +423,7 @@
           <input type="text" id="customer-name" placeholder="الاسم" />
         </div>
 
-        <button class="btn btn-primary" id="confirm-btn" disabled>تم التحويل - تأكيد الطلب</button>
+        <button type="button" class="btn btn-primary" id="confirm-btn">تم التحويل - تأكيد الطلب</button>
       </div>
 
       <!-- Waiting -->
@@ -394,13 +443,14 @@
       <h2>تم تأكيد الدفع!</h2>
       <p>الكارت بتاعك جاهز</p>
       <div class="code-box" id="card-code">CARD-XXXXXXXX</div>
-      <p style="font-size:13px">تم إرسال الكود أيضاً على واتساب<br>رقم: <span id="success-phone"></span></p>
-      <button class="btn btn-primary" style="margin-top:24px;max-width:280px" onclick="location.reload()">شراء كارت آخر</button>
+      <p id="success-pkg" style="font-size:13px;margin-top:8px"></p>
+      <p style="font-size:13px">الكارت محفوظ عندك على الرقم<br><span id="success-phone"></span></p>
+      <button class="btn btn-primary" id="copy-card-btn" style="margin-top:16px;max-width:280px">نسخ الكود</button>
+      <button class="btn" style="margin-top:10px;max-width:280px;background:#eee" onclick="location.reload()">شراء كارت آخر / عرض كروتي</button>
     </div>
 
     <div class="footer">
-      كرت شبكة 2025 © - جميع الحقوق محفوظة<br>
-      للتواصل: 773779585
+      للتواصل: 01023545726
     </div>
   </div>
 
@@ -473,20 +523,81 @@
     let selectedPackage = null;
     let selectedWallet = null;
 
+
+    function myKey(phone){ return 'ks_mycards_' + String(phone||'').trim(); }
+    function loadLocalCards(phone){
+      try { return JSON.parse(localStorage.getItem(myKey(phone))||'[]'); } catch(e){ return []; }
+    }
+    function saveMyCard(item){
+      if(!item || !item.phone || !item.code) return;
+      var list = loadLocalCards(item.phone);
+      if(list.some(function(x){ return x.code === item.code; })) return;
+      list.unshift(item);
+      localStorage.setItem(myKey(item.phone), JSON.stringify(list));
+      localStorage.setItem('ks_last_phone', item.phone);
+    }
+    function renderMyCards(list){
+      var box = document.getElementById('my-cards-list');
+      if(!box) return;
+      if(!list || !list.length){
+        box.innerHTML = '<p style="font-size:13px;color:#888;margin-top:10px">لا توجد كروت محفوظة على الرقم ده</p>';
+        return;
+      }
+      box.innerHTML = list.map(function(c){
+        return '<div class="my-card-item"><div class="code">'+c.code+'</div><div class="meta">'+(c.packageName||'')+' — '+(c.price||'')+' ج<br>'+(c.date||'')+'</div><button class="copy-btn" type="button" data-code="'+c.code+'" style="margin-top:8px">نسخ</button></div>';
+      }).join('');
+      box.querySelectorAll('[data-code]').forEach(function(b){
+        b.addEventListener('click', function(){ copyNumber(b.getAttribute('data-code')); });
+      });
+    }
+    async function showMyCards(phone){
+      phone = String(phone||'').trim();
+      if(!phone){ renderMyCards([]); return; }
+      var local = loadLocalCards(phone);
+      if(window.USE_API || window.API_BASE){
+        try{
+          var r = await fetch((window.API_BASE||'') + '/api/my-cards?phone=' + encodeURIComponent(phone));
+          var remote = await r.json();
+          if(Array.isArray(remote)){
+            remote.forEach(function(x){ saveMyCard({code:x.code, packageName:x.packageName, price:x.price, date:x.date, phone:phone}); });
+            local = loadLocalCards(phone);
+          }
+        }catch(e){}
+      }
+      renderMyCards(local);
+    }
+    function revealCard(code, phone, pkg, price){
+      saveMyCard({ code: code, phone: phone, packageName: pkg||'', price: price||'', date: new Date().toLocaleString('ar-EG') });
+      document.getElementById('main-content').style.display = 'none';
+      document.getElementById('card-code').textContent = code;
+      document.getElementById('success-phone').textContent = phone;
+      var sp = document.getElementById('success-pkg');
+      if(sp) sp.textContent = (pkg||'') + (price ? (' — ' + price + ' ج') : '');
+      document.getElementById('success-screen').classList.add('show');
+    }
+
     function renderPackages() {
-      const packages = (window._apiPackages || DB.get('packages').filter(p => p.active));
+      const packages = (window._apiPackages || DB.get('packages').filter(p => p.active !== false));
       const cards = DB.get('cards');
       const list = document.getElementById('packages-list');
+      const availAll = cards.filter(c => c.status === 'available').length;
+      const usedAll = cards.filter(c => c.status === 'used').length;
+      const bar = document.getElementById('totals-bar');
+      if (bar) {
+        bar.innerHTML = '<div><div class="n">'+packages.length+'</div><div class="l">باقات</div></div>'
+          + '<div><div class="n">'+availAll+'</div><div class="l">كروت متاحة</div></div>'
+          + '<div><div class="n">'+usedAll+'</div><div class="l">مباعة</div></div>';
+      }
 
       list.innerHTML = packages.map(p => {
-        const available = cards.filter(c => c.packageId === p.id && c.status === 'available').length;
+        const available = cards.filter(c => Number(c.packageId) === Number(p.id) && c.status === 'available').length;
         const disabled = available === 0;
         return `
           <div class="package-card ${disabled ? 'disabled' : ''}" data-id="${p.id}" style="${disabled ? 'opacity:0.5;pointer-events:none' : ''}">
             <div class="package-icon">🔑</div>
             <div class="package-info">
               <div class="package-name">${p.name}</div>
-              <div class="package-desc">${available > 0 ? available + ' كارت متاح' : 'غير متوفر حالياً'}</div>
+              <div class="package-desc">${available} كارت متاح</div>
             </div>
             <div class="package-price">${p.price} <span>ج</span></div>
           </div>
@@ -497,11 +608,12 @@
         card.addEventListener('click', () => {
           list.querySelectorAll('.package-card').forEach(c => c.classList.remove('selected'));
           card.classList.add('selected');
-          const id = parseInt(card.dataset.id);
-          selectedPackage = packages.find(p => p.id === id);
+          const id = Number(card.getAttribute('data-id'));
+          selectedPackage = packages.find(p => Number(p.id) === id);
+          var amt = document.getElementById('required-amount');
+          if (amt && selectedPackage) amt.textContent = selectedPackage.price + ' ج';
           document.getElementById('payment-box').classList.add('show');
           document.getElementById('payment-box').scrollIntoView({ behavior: 'smooth' });
-          checkForm();
         });
       });
     }
@@ -512,12 +624,12 @@
 
       list.innerHTML = wallets.map(w => `
         <div class="wallet-item" data-id="${w.id}">
-          <div class="icon">${w.name.includes('فودافون') ? '🔴' : '🟠'}</div>
+          <div class="icon">${(w.name||'').indexOf('فودافون')>=0 ? '🔴' : '🟠'}</div>
           <div class="info">
             <div class="name">${w.name}</div>
             <div class="number">${w.number}</div>
           </div>
-          <button class="copy-btn" onclick="event.stopPropagation(); copyNumber('${w.number}')">نسخ</button>
+          <button class="copy-btn" type="button">نسخ</button>
         </div>
       `).join('');
 
@@ -525,10 +637,21 @@
         item.addEventListener('click', () => {
           list.querySelectorAll('.wallet-item').forEach(i => i.classList.remove('selected'));
           item.classList.add('selected');
-          selectedWallet = wallets.find(w => w.id === parseInt(item.dataset.id));
-          checkForm();
+          selectedWallet = wallets.find(w => String(w.id) === String(item.getAttribute('data-id')));
         });
+        var copyBtn = item.querySelector('.copy-btn');
+        if (copyBtn) {
+          copyBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            var w = wallets.find(x => String(x.id) === String(item.getAttribute('data-id')));
+            if (w) copyNumber(w.number);
+          });
+        }
       });
+      if (wallets.length && !selectedWallet) {
+        var first = list.querySelector('.wallet-item');
+        if (first) first.click();
+      }
     }
 
     function copyNumber(num) {
@@ -539,19 +662,15 @@
       });
     }
 
-    function checkForm() {
-      const phone = document.getElementById('customer-phone').value.trim();
-      const btn = document.getElementById('confirm-btn');
-      btn.disabled = !(selectedPackage && selectedWallet && phone.length >= 10);
-    }
-
-    document.getElementById('customer-phone').addEventListener('input', checkForm);
-
     document.getElementById('confirm-btn').addEventListener('click', async () => {
       const phone = document.getElementById('customer-phone').value.trim();
+      const payerFrom = (document.getElementById('payer-from').value || '').trim();
       const name = document.getElementById('customer-name').value.trim();
 
-      if (!selectedPackage || !selectedWallet || !phone) return;
+      if (!selectedPackage) { alert('اختار الباقة أولاً عشان يظهر المبلغ المطلوب'); return; }
+      if (!selectedWallet) { alert('اختار طريقة الدفع'); return; }
+      if (!phone || phone.length < 10) { alert('اكتب رقم هاتفك صح'); return; }
+      if (!payerFrom || payerFrom.length < 10) { alert('اكتب الرقم اللي حوّلت منه'); return; }
 
       document.getElementById('payment-box').classList.remove('show');
       document.getElementById('packages-list').style.display = 'none';
@@ -570,7 +689,8 @@
               packageId: selectedPackage.id,
               phone,
               name,
-              walletId: selectedWallet.id
+              walletId: selectedWallet.id,
+              payerFrom
             })
           });
           const data = await res.json();
@@ -587,10 +707,7 @@
               const st = await r.json();
               if (st.status === 'completed') {
                 clearInterval(poll);
-                document.getElementById('main-content').style.display = 'none';
-                document.getElementById('card-code').textContent = st.cardCode;
-                document.getElementById('success-phone').textContent = st.phone;
-                document.getElementById('success-screen').classList.add('show');
+                revealCard(st.cardCode, st.phone, selectedPackage && selectedPackage.name, selectedPackage && selectedPackage.price);
               }
             } catch (e) {}
           }, 3000);
@@ -610,12 +727,25 @@
           name,
           walletId: selectedWallet.id,
           walletName: selectedWallet.name,
+          payerFrom,
           status: 'pending',
           createdAt: new Date().toISOString()
         };
         pending.push(order);
         DB.set('pending', pending);
-        setTimeout(() => approveOrder(order), 4000);
+        var waitBox = document.getElementById('waiting-box');
+        waitBox.querySelector('p').innerHTML = 'استنى تأكيد الدفع من جسر الرسائل أو التأكيد اليدوي من المدير.<br>المبلغ المطلوب: <b>'+order.price+' ج</b>';
+        var poll = setInterval(function() {
+          var sales = DB.get('sales') || [];
+          var found = sales.find(function(s){ return String(s.orderId) === String(order.id); });
+          var still = (DB.get('pending') || []).find(function(p){ return String(p.id) === String(order.id); });
+          if (found) {
+            clearInterval(poll);
+            revealCard(found.cardCode, found.phone, found.packageName, found.price);
+          } else if (!still) {
+            clearInterval(poll);
+          }
+        }, 2000);
       }
     });
 
@@ -668,26 +798,39 @@
       DB.set('pending', pending);
 
       // Show success
-      document.getElementById('main-content').style.display = 'none';
-      document.getElementById('card-code').textContent = card.code;
-      document.getElementById('success-phone').textContent = order.phone;
-      document.getElementById('success-screen').classList.add('show');
+      revealCard(card.code, order.phone, order.packageName, order.price);
     }
 
     // Init
     (async () => {
+      if (window.bootKartApi) await window.bootKartApi();
       const fromApi = await loadFromApi();
       if (!fromApi) ensureData();
       renderPackages();
       renderWallets();
+      var last = localStorage.getItem('ks_last_phone') || '';
+      if(last){
+        document.getElementById('customer-phone').value = last;
+        document.getElementById('lookup-phone').value = last;
+        showMyCards(last);
+      }
+      document.getElementById('lookup-btn').addEventListener('click', function(){
+        var ph = document.getElementById('lookup-phone').value.trim();
+        document.getElementById('customer-phone').value = ph;
+        showMyCards(ph);
+      });
+      var copyNew = document.getElementById('copy-card-btn');
+      if(copyNew) copyNew.addEventListener('click', function(){
+        copyNumber(document.getElementById('card-code').textContent);
+      });
     })();
   </script>
 
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js').then(() => {
-        console.log('PWA Service Worker registered');
-      }).catch(console.error);
+      navigator.serviceWorker.getRegistrations().then(function(regs) {
+        regs.forEach(function(r) { r.unregister(); });
+      });
     }
   </script>
 </body>
