@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta http-equiv="Cache-Control" content="no-store" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>كرت شبكة - شراء كارت v6</title>
+  <title>كرت شبكة - كروتي</title>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -345,12 +345,63 @@
     .waiting-box.show {
       display: block;
     }
-    .my-cards { background:#fff; border-radius:14px; padding:14px; margin:16px 0; box-shadow:0 1px 5px rgba(0,0,0,.06); }
-    .my-card-item { border:1px solid #eee; border-radius:10px; padding:12px; margin-top:10px; }
-    .my-card-item .code { font-weight:800; letter-spacing:1px; direction:ltr; text-align:right; font-size:16px; color:#111; }
-    .my-card-item .meta { font-size:12px; color:#666; margin-top:4px; }
-    .lookup-row { display:flex; gap:8px; }
-    .lookup-row input { flex:1; }
+    .my-cards { display:none; }
+    .cards-page {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: #f3f3f3;
+      z-index: 40;
+      overflow: auto;
+      max-width: 420px;
+      margin: 0 auto;
+    }
+    .cards-page.show { display: block; }
+    .cards-top {
+      background: linear-gradient(160deg, #111 0%, #2a2a2a 100%);
+      color: #fff;
+      padding: 22px 16px 24px;
+    }
+    .cards-top h2 { font-size: 26px; margin-bottom: 4px; color:#f5a623; }
+    .cards-top p { font-size: 12px; color: #bbb; }
+    .cards-wrap { padding: 14px 14px 90px; background:#ececec; min-height:70vh; }
+    .my-card-item {
+      background: linear-gradient(135deg, #1a1a1a 0%, #333 60%, #111 100%);
+      color:#fff;
+      border: 1px solid #f5a62355;
+      border-radius: 18px;
+      padding: 18px 16px;
+      margin-top: 12px;
+      box-shadow: 0 8px 20px rgba(0,0,0,.18);
+      position:relative;
+      overflow:hidden;
+    }
+    .my-card-item:before {
+      content:'🦅';
+      position:absolute; left:12px; top:12px; font-size:22px; opacity:.35;
+    }
+    .my-card-item .code { font-weight:800; letter-spacing:2px; direction:ltr; text-align:right; font-size:22px; color:#f5a623; }
+    .my-card-item .meta { font-size:12px; color:#ddd; margin-top:8px; }
+    .my-card-item .copy-btn { background:#f5a623; color:#111; border:0; }
+    .lookup-row { display:none; }
+    .bottom-nav {
+      position: sticky;
+      bottom: 0;
+      background: #111;
+      display: flex;
+      z-index: 30;
+    }
+    .bottom-nav button {
+      flex: 1;
+      border: 0;
+      background: transparent;
+      color: #aaa;
+      padding: 12px;
+      font-family: inherit;
+      font-weight: 800;
+      font-size: 14px;
+    }
+    .bottom-nav button.on { color: #f5a623; }
     .spinner {
       width: 40px;
       height: 40px;
@@ -397,15 +448,9 @@
     </div>
 
     <div class="content" id="main-content">
+      <input type="hidden" id="lookup-phone" />
+      <button type="button" id="lookup-btn" style="display:none"></button>
       <!-- Step 1: Choose Package -->
-      <div class="my-cards" id="my-cards-box">
-        <div class="section-title" style="margin-bottom:8px">كروتي في الصفحة دي</div>
-        <div class="lookup-row">
-          <input type="tel" id="lookup-phone" placeholder="اكتب رقمك لعرض كروتك" dir="ltr" />
-          <button type="button" class="copy-btn" id="lookup-btn">عرض</button>
-        </div>
-        <div id="my-cards-list"></div>
-      </div>
       <div class="section-title">اختر الباقة</div>
       <div class="totals-bar" id="totals-bar"></div>
       <div class="packages" id="packages-list">
@@ -470,11 +515,25 @@
       <p style="font-size:13px">محفوظ على رقم<br><span id="success-phone"></span><br>مفيش واتساب — افتح الصفحة بنفس الرقم تلاقيه</p>
       <button class="btn btn-primary" id="copy-card-btn" style="margin-top:16px;max-width:280px">نسخ الكود</button>
       <div id="success-saved-list" style="text-align:right;margin-top:18px"></div>
-      <button class="btn" style="margin-top:10px;max-width:280px;background:#eee" onclick="location.reload()">رجوع لكروتي وشراء كارت آخر</button>
+      <button class="btn" style="margin-top:10px;max-width:280px;background:#eee" id="go-cards-after">فتح كروتي</button>
     </div>
 
     <div class="footer">
       للتواصل: 01023545726
+    </div>
+    <div class="bottom-nav">
+      <button type="button" class="on" id="nav-shop">🛒 شراء</button>
+      <button type="button" id="nav-cards">🎫 كروتي</button>
+    </div>
+  </div>
+  <div class="cards-page" id="cards-page">
+    <div class="cards-top">
+      <h2>كروتي</h2>
+      <p id="cards-sub">الكروت اللي اشتريتها محفوظة هنا</p>
+    </div>
+    <div class="cards-wrap">
+      <div id="my-cards-list"></div>
+      <button type="button" class="btn btn-primary" id="cards-back" style="margin-top:16px">رجوع للشراء</button>
     </div>
   </div>
 
@@ -568,7 +627,7 @@
         return;
       }
       box.innerHTML = list.map(function(c){
-        return '<div class="my-card-item"><div class="code">'+c.code+'</div><div class="meta">'+(c.packageName||'')+' — '+(c.price||'')+' ج<br>'+(c.date||'')+'</div><button class="copy-btn" type="button" data-code="'+c.code+'" style="margin-top:8px">نسخ</button></div>';
+        return '<div class="my-card-item"><div class="code">'+c.code+'</div><div class="meta">'+(c.packageName||'')+' — '+(c.price||'')+' ج<br>'+(c.date||'')+'</div><button class="copy-btn" type="button" data-code="'+c.code+'" style="margin-top:10px">نسخ الكود</button></div>';
       }).join('');
       box.querySelectorAll('[data-code]').forEach(function(b){
         b.addEventListener('click', function(){ copyNumber(b.getAttribute('data-code')); });
@@ -598,6 +657,7 @@
       var sp = document.getElementById('success-pkg');
       if(sp) sp.textContent = (pkg||'') + (price ? (' — ' + price + ' ج') : '');
       document.getElementById('success-screen').classList.add('show');
+      if(typeof openCardsPage==='function'){ /* keep success first */ }
       var hold = document.getElementById('success-saved-list');
       if (hold) {
         var all = loadLocalCards(phone);
@@ -830,6 +890,22 @@
     }
 
 
+
+    function openCardsPage(){
+      var phone = custSession() || (document.getElementById('customer-phone')&&document.getElementById('customer-phone').value) || '';
+      showMyCards(phone);
+      var n=loadLocalCards(phone).length;
+      var sub=document.getElementById('cards-sub');
+      if(sub) sub.textContent = n ? ('عندك '+n+' كارت محفوظ') : 'لسه مفيش كروت على الحساب ده';
+      document.getElementById('cards-page').classList.add('show');
+      document.getElementById('nav-cards').classList.add('on');
+      document.getElementById('nav-shop').classList.remove('on');
+    }
+    function closeCardsPage(){
+      document.getElementById('cards-page').classList.remove('show');
+      document.getElementById('nav-shop').classList.add('on');
+      document.getElementById('nav-cards').classList.remove('on');
+    }
     function chash(s){ try { return btoa(unescape(encodeURIComponent('c|'+s))); } catch(e){ return 'c|'+s; } }
     function cusers(){ try { return JSON.parse(localStorage.getItem('ks_cusers')||'[]'); } catch(e){ return []; } }
     function setCusers(v){ localStorage.setItem('ks_cusers', JSON.stringify(v)); }
@@ -885,11 +961,17 @@
       renderPackages();
       renderWallets();
       if(custSession()){ showCustApp(custSession()); }
-      document.getElementById('lookup-btn').addEventListener('click', function(){
+      var lb=document.getElementById('lookup-btn');
+      if(lb) lb.addEventListener('click', function(){
         var ph = document.getElementById('lookup-phone').value.trim();
         document.getElementById('customer-phone').value = ph;
         showMyCards(ph);
       });
+      document.getElementById('nav-cards').addEventListener('click', openCardsPage);
+      document.getElementById('nav-shop').addEventListener('click', closeCardsPage);
+      document.getElementById('cards-back').addEventListener('click', closeCardsPage);
+      var gca=document.getElementById('go-cards-after');
+      if(gca) gca.addEventListener('click', function(){ document.getElementById('success-screen').classList.remove('show'); document.getElementById('main-content').style.display=''; openCardsPage(); });
       var copyNew = document.getElementById('copy-card-btn');
       if(copyNew) copyNew.addEventListener('click', function(){
         copyNumber(document.getElementById('card-code').textContent);
