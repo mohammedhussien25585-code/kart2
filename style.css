@@ -25,6 +25,51 @@ body {
 .app.is-hidden-home {
   display: none !important;
 }
+.app.locked { display: none !important; }
+.login-screen {
+  width: 100%;
+  max-width: 420px;
+  min-height: 100vh;
+  background: #111;
+  color: #fff;
+  padding: 40px 22px;
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+}
+.login-screen.show { display: flex; }
+.login-screen h1 { text-align: center; font-size: 22px; margin: 10px 0 6px; }
+.login-screen p { text-align: center; color: #bbb; font-size: 13px; margin-bottom: 22px; }
+.login-screen input {
+  width: 100%;
+  border: 0;
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 10px;
+  font-family: inherit;
+  font-size: 15px;
+}
+.login-screen .btn {
+  width: 100%;
+  border: 0;
+  border-radius: 10px;
+  padding: 12px;
+  background: #f5a623;
+  color: #111;
+  font-weight: 800;
+  font-family: inherit;
+  font-size: 15px;
+  cursor: pointer;
+}
+.login-screen .link {
+  background: none;
+  border: 0;
+  color: #f5a623;
+  margin-top: 14px;
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
 
 /* Status Bar */
 .status-bar {
@@ -185,7 +230,7 @@ body {
 }
 
 .menu-item.full {
-  grid-column: 2;
+  grid-column: 1 / -1;
 }
 
 /* Footer */
