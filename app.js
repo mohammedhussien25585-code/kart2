@@ -1444,23 +1444,29 @@ function setAdmins(list) {
   DB.set('admins', list);
 }
 function currentAdmin() {
-  return sessionStorage.getItem('ks_admin') || '';
+  return sessionStorage.getItem('ks_admin') || localStorage.getItem('ks_admin_keep') || '';
 }
 function setSession(user) {
   sessionStorage.setItem('ks_admin', user);
+  localStorage.setItem('ks_admin_keep', user);
+  document.documentElement.classList.add('authed');
 }
 function clearSession() {
   sessionStorage.removeItem('ks_admin');
+  localStorage.removeItem('ks_admin_keep');
+  document.documentElement.classList.remove('authed');
 }
 function showAdminApp() {
   var login = document.getElementById('login-screen');
   var appEl = document.getElementById('admin-app');
+  document.documentElement.classList.add('authed');
   if (login) login.classList.remove('show');
   if (appEl) appEl.classList.remove('locked');
 }
 function showLogin(signup) {
   var login = document.getElementById('login-screen');
   var appEl = document.getElementById('admin-app');
+  document.documentElement.classList.remove('authed');
   if (appEl) appEl.classList.add('locked');
   if (login) login.classList.add('show');
   var p2 = document.getElementById('login-pass2');
@@ -1554,17 +1560,18 @@ function wireAuth() {
 
 // ========== Init ==========
 (async function () {
-  try {
-    if (window.bootKartApi) await window.bootKartApi();
-    if (window.installApiBridge) window.installApiBridge(DB);
-  } catch (e) {}
-  try { initData(); } catch (e) { initData(); }
-  wireAuth();
   window.handleLogin = handleLogin;
   window.showLogin = showLogin;
   window.showAdminApp = showAdminApp;
   if (currentAdmin()) showAdminApp();
   else showLogin(false);
+  wireAuth();
+  try {
+    if (window.bootKartApi) await window.bootKartApi();
+    if (window.installApiBridge) window.installApiBridge(DB);
+  } catch (e) {}
+  try { initData(); } catch (e) { initData(); }
+  if (currentAdmin()) showAdminApp();
 })();
 
 window.startEditPackage = startEditPackage;
