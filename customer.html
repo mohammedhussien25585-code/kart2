@@ -429,7 +429,7 @@
       <!-- Waiting -->
       <div class="waiting-box" id="waiting-box">
         <div class="spinner"></div>
-        <h3 style="margin-bottom:8px">جاري التحقق من الدفع...</h3>
+        <h3 style="margin-bottom:8px">في انتظار تأكيد التحويل...</h3>
         <p style="color:#666;font-size:13px;line-height:1.7">
           استنى شوية، النظام بيراجع رسالة التحويل<br>
           وهيبعتلك الكارت أول ما يتأكد
@@ -742,8 +742,16 @@
         pending.push(order);
         DB.set('pending', pending);
         var waitBox = document.getElementById('waiting-box');
-        waitBox.querySelector('p').innerHTML = 'جاري استخراج الكارت للمبلغ <b>'+order.price+' ج</b> وتسجيله في صفحتك...';
-        setTimeout(function(){ approveOrder(order); }, 700);
+        waitBox.querySelector('p').innerHTML = 'الطلب اتسجل. الكارت <b>مش هينزل</b> غير بعد ما التحويل يتأكد.<br>المبلغ المطلوب: <b>'+order.price+' ج</b><br>استنى تأكيد المدير أو الجسر.';
+        var poll = setInterval(function() {
+          var sales = DB.get('sales') || [];
+          var found = sales.find(function(s){ return String(s.orderId) === String(order.id) || (s.phone===order.phone && Number(s.price)===Number(order.price) && !s._shown); });
+          var still = (DB.get('pending') || []).find(function(p){ return String(p.id) === String(order.id); });
+          if (found && found.cardCode) {
+            clearInterval(poll);
+            revealCard(found.cardCode, found.phone, found.packageName, found.price);
+          }
+        }, 2000);
       }
     });
 
