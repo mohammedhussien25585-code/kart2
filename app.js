@@ -1715,4 +1715,24 @@ function startOrderWatch() {
       notifyAdmin('طلب معلق جديد', (p.packageName || 'باقة') + ' — ' + (p.price || '') + ' ج من ' + (p.phone || ''));
     });
     localStorage.setItem('ks_seen_pending', JSON.stringify(Object.keys(seen)));
- 
+  }, 3000);
+}
+
+document.addEventListener('click', function (e) {
+  var btn = e.target.closest ? e.target.closest('.js-act') : null;
+  if (!btn) return;
+  var act = btn.getAttribute('data-act');
+  var id = btn.getAttribute('data-id');
+  if (act === 'edit-pkg') startEditPackage(id);
+  if (act === 'toggle-pkg') togglePackage(id);
+  if (act === 'del-pkg') deletePackage(id);
+});
+window.startEditPackage = startEditPackage;
+window.togglePackage = togglePackage;
+window.deletePackage = deletePackage;
+window.confirmPending = confirmPending;
+window.approvePayment = approvePayment;
+window.deleteCard = deleteCard;
+window.deleteMessage = deleteMessage;
+window.deletePending = deletePending;
+window.approvePayment = approvePayment;
