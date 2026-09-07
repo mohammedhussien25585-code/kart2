@@ -158,15 +158,15 @@ function renderPage(page) {
     case 'sales': return renderSales();
     case 'customers': return renderCustomers();
     case 'wallets': return renderWallets();
-    case 'archive': return renderArchive();
+    case 'archive': return renderArchive(true);
     case 'offers': return renderOffers();
     case 'settings': return renderSettings();
     case 'pos': return renderPOS();
     case 'backup': return renderBackup();
-    case 'sms-bridge': return renderArchive();
+    case 'sms-bridge': return renderSmsBridgePage();
     case 'sms-device': return renderSmsDevice();
     case 'payment-review': return renderPaymentReview();
-    case 'pending': return renderArchive();
+    case 'pending': return renderPendingOnly();
     case 'available-cards': return renderCardsList('available');
     case 'used-cards': return renderCardsList('used');
     case 'offer-cards': return renderCardsList('offer');
@@ -600,6 +600,51 @@ function regenDeviceCode() {
 }
 
 // ----- Archive -----
+function pendingBlock() {
+  const pending = DB.get('pending') || [];
+  if (!pending.length) {
+    return '<div class="form-card"><p style="font-size:14px;color:#666;text-align:center;padding:20px 8px">لا توجد طلبات معلقة.</p></div>';
+  }
+  return `
+      <div class="form-card">
+        <h3 style="font-size:14px;margin-bottom:10px;color:#e67e22">⏳ طلبات في انتظار التأكيد (${pending.length})</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>الباقة</th><th>المبلغ</th><th>الرقم</th><th></th></tr></thead>
+            <tbody>
+              ${pending.map(p => `
+                <tr>
+                  <td>${escapeHtml(p.packageName)}</td>
+                  <td>${p.price} ج</td>
+                  <td dir="ltr">${escapeHtml(p.phone)}</td>
+                  <td>
+                    <button class="btn" style="padding:4px 10px;font-size:11px;background:#27ae60;color:#fff" onclick="confirmPending('${p.id}')">تأكيد</button>
+                    <button class="btn" style="padding:4px 10px;font-size:11px;background:#e74c3c;color:#fff" onclick="deletePending('${p.id}')">حذف</button>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+}
+function renderPendingOnly() {
+  return pendingBlock() + '<div class="form-card"><p style="font-size:13px;color:#666">أكد بعد التحويل أو احذف الطلب.</p></div>';
+}
+function renderSmsBridgePage() {
+  const code = ((DB.get('settings', {}) || {}).smsDeviceCode) || 'من رمز الجهاز';
+  return `
+    <div class="form-card">
+      <h3 style="font-size:16px;margin-bottom:8px">جسر الرسائل</h3>
+      <p style="font-size:13px;color:#555;line-height:1.8">
+        الجسر على موبايل فودافون يقرأ الرسالة ويبعتها للسيرفر.<br>
+        على GitHub استخدم <b>الطلبات المعلقة → تأكيد</b>.<br>
+        رمز الجهاز: <b dir="ltr">${escapeHtml(String(code))}</b>
+      </p>
+    </div>
+    ${pendingBlock()}
+  `;
+}
 function renderArchive() {
   const messages = DB.get('messages').slice().reverse();
   const pending = DB.get('pending') || [];
