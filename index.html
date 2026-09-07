@@ -172,17 +172,10 @@
 
   <script src="config.js"></script>
   <script src="api.js"></script>
-  <script src="app.js?v=fix3"></script>
+  <script src="app.js?v=archive2"></script>
   <script>
-    document.querySelectorAll('.menu-item').forEach(function(btn){
-      btn.addEventListener('click', function(){
-        if (typeof openPage === 'function') openPage(btn.dataset.page);
-      });
-    });
-    var back=document.getElementById('back-btn');
-    if(back) back.addEventListener('click', function(){ if(typeof closePage==='function') closePage(); });
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then(function(rs){ rs.forEach(function(r){ r.unregister(); }); });
+      navigator.serviceWorker.register('./sw.js').catch(function(){});
     }
   </script>
 </body>
