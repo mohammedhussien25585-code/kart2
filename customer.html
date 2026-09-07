@@ -432,7 +432,8 @@
     <div style="text-align:center;font-size:42px">🦅</div>
     <h1>دخول العميل</h1>
     <p id="clogin-hint">سجل دخول برقمك وكلمة السر عشان كروتك متظهرش لحد تاني</p>
-    <input type="tel" id="c-user" placeholder="رقم الموبايل" dir="ltr" />
+    <input type="tel" id="c-admin" placeholder="رقم المدير المرتبط بيه" dir="ltr" />
+    <input type="tel" id="c-user" placeholder="رقم موبايلك" dir="ltr" />
     <input type="password" id="c-pass" placeholder="كلمة السر" />
     <input type="password" id="c-pass2" placeholder="تأكيد كلمة السر" style="display:none" />
     <button type="button" class="btnx" id="c-login-btn">دخول</button>
@@ -615,9 +616,11 @@
       if(!item || !item.phone || !item.code) return;
       var list = loadLocalCards(item.phone);
       if(list.some(function(x){ return x.code === item.code; })) return;
+      if(!item.admin) item.admin = boundAdmin();
       list.unshift(item);
       localStorage.setItem(myKey(item.phone), JSON.stringify(list));
       localStorage.setItem('ks_last_phone', item.phone);
+      if(window.pushCloud) window.pushCloud();
     }
     function renderMyCards(list){
       var box = document.getElementById('my-cards-list');
@@ -626,6 +629,8 @@
         box.innerHTML = '<p style="font-size:13px;color:#888;margin-top:10px">لا توجد كروت محفوظة على الرقم ده</p>';
         return;
       }
+      var adm=boundAdmin();
+      if(adm) list=list.filter(function(c){ return !c.admin || c.admin===adm; });
       box.innerHTML = list.map(function(c){
         return '<div class="my-card-item"><div class="code">'+c.code+'</div><div class="meta">'+(c.packageName||'')+' — '+(c.price||'')+' ج<br>'+(c.date||'')+'</div><button class="copy-btn" type="button" data-code="'+c.code+'" style="margin-top:10px">نسخ الكود</button></div>';
       }).join('');
@@ -908,9 +913,10 @@
     }
     function chash(s){ try { return btoa(unescape(encodeURIComponent('c|'+s))); } catch(e){ return 'c|'+s; } }
     function cusers(){ try { return JSON.parse(localStorage.getItem('ks_cusers')||'[]'); } catch(e){ return []; } }
-    function setCusers(v){ localStorage.setItem('ks_cusers', JSON.stringify(v)); }
+    function setCusers(v){ localStorage.setItem('ks_cusers', JSON.stringify(v)); if(window.pushCloud) window.pushCloud(); }
     function custSession(){ return sessionStorage.getItem('ks_cust')||''; }
     var cMode='login';
+    function boundAdmin(){ return sessionStorage.getItem('ks_admin_bind') || localStorage.getItem('ks_admin_bind') || ''; }
     function showCustApp(phone){
       sessionStorage.setItem('ks_cust', phone);
       localStorage.setItem('ks_last_phone', phone);
@@ -939,13 +945,23 @@
       if(cMode==='signup'){
         if(pass!==pass2){ alert('تأكيد كلمة السر غلط'); return; }
         if(list.find(function(u){ return u.phone===phone; })){ alert('الرقم مسجل قبل كده، اعمل دخول'); return; }
-        list.push({phone:phone, pass:chash(pass)});
+        var admin=(document.getElementById('c-admin').value||'').trim() || (new URLSearchParams(location.search).get('admin')||'');
+        if(admin.length<10){ alert('اكتب رقم المدير أو افتح رابط المدير'); return; }
+        list.push({phone:phone, pass:chash(pass), admin:admin});
         setCusers(list);
+        sessionStorage.setItem('ks_admin_bind', admin);
+        localStorage.setItem('ks_admin_bind', admin);
         showCustApp(phone);
         return;
       }
+      var admin=(document.getElementById('c-admin').value||'').trim() || (new URLSearchParams(location.search).get('admin')||'');
       var u=list.find(function(x){ return x.phone===phone && x.pass===chash(pass); });
       if(!u){ alert('رقم أو كلمة سر غلط'); return; }
+      if(admin && u.admin && u.admin!==admin){ alert('الحساب مرتبط بمدير تاني'); return; }
+      if(!u.admin && admin){ u.admin=admin; setCusers(list); }
+      var useAdmin=u.admin||admin;
+      sessionStorage.setItem('ks_admin_bind', useAdmin);
+      localStorage.setItem('ks_admin_bind', useAdmin);
       showCustApp(phone);
     });
     document.getElementById('c-logout').addEventListener('click', function(){
@@ -960,6 +976,8 @@
       if (!fromApi) ensureData();
       renderPackages();
       renderWallets();
+            var qAdmin=new URLSearchParams(location.search).get('admin')||localStorage.getItem('ks_admin_bind')||'';
+      if(qAdmin && document.getElementById('c-admin')) document.getElementById('c-admin').value=qAdmin;
       if(custSession()){ showCustApp(custSession()); }
       var lb=document.getElementById('lookup-btn');
       if(lb) lb.addEventListener('click', function(){
