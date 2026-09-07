@@ -82,6 +82,10 @@ const pageTitles = {
   'settings': 'الإعدادات',
   'pos': 'نقاط البيع والبقالات',
   'backup': 'نسخ احتياطي',
+  'sms-bridge': 'جسر الرسائل',
+  'sms-device': 'رمز جهاز فحص الرسائل',
+  'payment-review': 'مراجعة تحويلات فودافون كاش',
+  'pending': 'الطلبات المعلقة',
   'available-cards': 'الكروت المتاحة',
   'used-cards': 'الكروت المستخدمة',
   'offer-cards': 'كروت العروض',
@@ -159,6 +163,10 @@ function renderPage(page) {
     case 'settings': return renderSettings();
     case 'pos': return renderPOS();
     case 'backup': return renderBackup();
+    case 'sms-bridge': return renderArchive();
+    case 'sms-device': return renderSmsDevice();
+    case 'payment-review': return renderPaymentReview();
+    case 'pending': return renderArchive();
     case 'available-cards': return renderCardsList('available');
     case 'used-cards': return renderCardsList('used');
     case 'offer-cards': return renderCardsList('offer');
@@ -276,6 +284,7 @@ function renderPackages() {
         <td>${used}</td>
         <td><span class="badge ${p.active ? 'badge-success' : 'badge-danger'}">${p.active ? 'نشط' : 'متوقف'}</span></td>
         <td>
+          <button class="btn" style="padding:4px 8px;font-size:11px;background:#f5a623;color:#111;margin-left:4px" onclick="startEditPackage(${p.id})">تعديل</button>
           <button class="btn" style="padding:4px 8px;font-size:11px;background:#3498db;color:#fff;margin-left:4px" onclick="togglePackage(${p.id})">${p.active ? 'إيقاف' : 'تفعيل'}</button>
           <button class="btn" style="padding:4px 8px;font-size:11px;background:#e74c3c;color:#fff" onclick="deletePackage(${p.id})">حذف</button>
         </td>
@@ -294,6 +303,7 @@ function renderPackages() {
         <input type="number" id="new-pkg-price" placeholder="100" />
       </div>
       <button class="btn btn-primary" id="add-package-btn">+ إضافة باقة</button>
+      <input type="hidden" id="edit-pkg-id" value="" />
     </div>
     <div class="form-card">
       <div class="table-wrap">
@@ -472,6 +482,105 @@ function renderWallets() {
   `;
 }
 
+function getDeviceCode() {
+  var s = DB.get('settings', {}) || {};
+  if (!s.smsDeviceCode) {
+    s.smsDeviceCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+    DB.set('settings', s);
+  }
+  return s.smsDeviceCode;
+}
+
+function renderSmsDevice() {
+  var s = DB.get('settings', {}) || {};
+  var code = getDeviceCode();
+  var last = s.smsLastSeen ? new Date(s.smsLastSeen).toLocaleString('ar-EG') : 'لم يتصل بعد';
+  return `
+    <div class="form-card">
+      <h3 style="font-size:16px;margin-bottom:8px">ربط فاحص الرسائل</h3>
+      <p style="font-size:13px;color:#555;line-height:1.8;margin-bottom:12px">
+        ثبّت تطبيق فحص الرسائل على موبايل المحفظة (فودافون كاش).<br>
+        حط الرمز ده في التطبيق عشان الرسائل توصل هنا.
+      </p>
+      <div style="background:#111;color:#f5a623;font-size:28px;font-weight:800;letter-spacing:4px;text-align:center;padding:18px;border-radius:12px;direction:ltr">${escapeHtml(code)}</div>
+      <p style="text-align:center;font-size:12px;color:#888;margin:10px 0">آخر اتصال: ${escapeHtml(last)}</p>
+      <button class="btn btn-primary" id="regen-device-btn">توليد رمز جديد</button>
+      <button class="btn" id="copy-device-btn" style="width:100%;margin-top:8px;background:#eee">نسخ الرمز</button>
+    </div>
+    <div class="form-card">
+      <h3 style="font-size:14px;margin-bottom:8px">رابط الإرسال للتطبيق</h3>
+      <p style="font-size:12px;direction:ltr;text-align:left;background:#f6f6f6;padding:10px;border-radius:8px;word-break:break-all">${escapeHtml((window.API_BASE || location.origin) + '/api/sms')}</p>
+      <p style="font-size:13px;color:#555;line-height:1.8;margin-top:10px">
+        التطبيق يبعت JSON:<br>
+        <span dir="ltr" style="font-size:12px">{"deviceCode":"${escapeHtml(code)}","body":"تم استلام 120 جنيه","from":"Vodafone"}</span>
+      </p>
+      <a class="btn btn-primary" href="inspector.html" style="display:block;text-align:center;text-decoration:none;margin-top:10px">فتح صفحة الفاحص اليدوي</a>
+    </div>
+  `;
+}
+
+function renderPaymentReview() {
+  const messages = (DB.get('messages') || []).slice().reverse();
+  const pending = DB.get('pending') || [];
+  let rows = messages.map(m => `
+    <tr>
+      <td style="font-size:11px">${m.receivedAt ? new Date(m.receivedAt).toLocaleString('ar-EG') : '-'}</td>
+      <td dir="ltr">${escapeHtml(m.from || '-')}</td>
+      <td>${m.amount || '-'}</td>
+      <td style="font-size:12px">${escapeHtml((m.body || '').substring(0, 60))}</td>
+      <td><span class="badge ${m.matched ? 'badge-success' : 'badge-warning'}">${m.matched ? 'مطابقة' : 'مراجعة'}</span></td>
+      <td>
+        ${!m.matched ? `<button class="btn" style="padding:4px 8px;font-size:11px;background:#27ae60;color:#fff" onclick="approvePayment('${m.id}')">تأكيد</button>` : ''}
+      </td>
+    </tr>
+  `).join('');
+  return `
+    <div class="form-card">
+      <h3 style="font-size:16px;margin-bottom:8px">مراجعة رسائل الدفع</h3>
+      <p style="font-size:13px;color:#555;margin-bottom:12px">تحويلات فودافون كاش الواردة من جهاز الفحص. أكّد اللي مطابق لطلب معلق (${pending.length} طلب).</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>الوقت</th><th>المرسل</th><th>المبلغ</th><th>الرسالة</th><th>الحالة</th><th></th></tr></thead>
+          <tbody>${rows || '<tr><td colspan="6" style="text-align:center;padding:24px">لا توجد رسائل بعد</td></tr>'}</tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+async function approvePayment(id) {
+  if (!confirm('تأكيد التحويل وارسال الكارت؟')) return;
+  if (window.USE_API) {
+    try {
+      const r = await fetch((window.API_BASE || '') + '/api/payments/' + id + '/approve', { method: 'POST' });
+      const data = await r.json();
+      if (!r.ok) { alert(data.error || 'فشل'); return; }
+      alert('تم إرسال الكارت: ' + data.cardCode);
+      if (window.bootKartApi) await window.bootKartApi();
+      openPage('payment-review');
+      return;
+    } catch (e) {}
+  }
+  const messages = DB.get('messages') || [];
+  const msg = messages.find(m => String(m.id) === String(id));
+  if (!msg) return;
+  const pending = DB.get('pending') || [];
+  const order = pending.filter(o => !msg.amount || Number(o.price) === Number(msg.amount))[0];
+  if (!order) { alert('لا يوجد طلب معلق مطابق'); return; }
+  fulfillPendingOrder(order, 'review');
+}
+
+function regenDeviceCode() {
+  var s = DB.get('settings', {}) || {};
+  s.smsDeviceCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+  DB.set('settings', s);
+  if (window.USE_API) {
+    fetch((window.API_BASE || '') + '/api/device/regen', { method: 'POST' }).finally(function(){ openPage('sms-device'); });
+    return;
+  }
+  openPage('sms-device');
+}
+
 // ----- Archive -----
 function renderArchive() {
   const messages = DB.get('messages').slice().reverse();
@@ -484,7 +593,7 @@ function renderArchive() {
         <h3 style="font-size:14px;margin-bottom:10px;color:#e67e22">⏳ طلبات في انتظار التأكيد (${pending.length})</h3>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>الباقة</th><th>المبلغ</th><th>الرقم</th><th>الوقت</th></tr></thead>
+            <thead><tr><th>الباقة</th><th>المبلغ</th><th>الرقم</th><th>الوقت</th><th></th></tr></thead>
             <tbody>
               ${pending.map(p => `
                 <tr>
@@ -492,6 +601,9 @@ function renderArchive() {
                   <td>${p.price} ج</td>
                   <td dir="ltr">${escapeHtml(p.phone)}</td>
                   <td style="font-size:11px">${new Date(p.createdAt).toLocaleString('ar-EG')}</td>
+                  <td>
+                    <button class="btn" style="padding:4px 10px;font-size:11px;background:#27ae60;color:#fff" onclick="confirmPending('${p.id}')">تأكيد يدوي</button>
+                  </td>
                 </tr>
               `).join('')}
             </tbody>
@@ -514,8 +626,13 @@ function renderArchive() {
     <div class="form-card">
       <p style="font-size:13px;color:#666;margin-bottom:12px;line-height:1.7">
         هنا تظهر رسائل التأكيد الواردة من <strong>جسر الرسائل</strong>.<br>
-        جسر الرسائل لسه هيتضاف (تطبيق أندرويد يقرأ SMS التحويل).
+        لو الجسر مش شغال استخدم <strong>تأكيد يدوي</strong> على الطلب المعلق.
       </p>
+      <div class="form-group">
+        <label>تجربة رسالة تحويل (بدل الجسر)</label>
+        <input type="number" id="sim-amount" placeholder="اكتب المبلغ زي 120" />
+      </div>
+      <button class="btn btn-primary" id="sim-sms-btn">محاكاة رسالة وتحويل الكارت</button>
       <div class="table-wrap">
         <table>
           <thead>
@@ -585,10 +702,25 @@ function renderSettings() {
       <button class="btn btn-primary" id="save-settings">💾 حفظ الإعدادات</button>
     </div>
     <div class="form-card">
+      <h3 style="font-size:14px;margin-bottom:10px">إضافة مدير جديد</h3>
+      <div class="form-group">
+        <label>يوزر المدير</label>
+        <input type="text" id="new-admin-user" placeholder="username" dir="ltr" />
+      </div>
+      <div class="form-group">
+        <label>باسوورد المدير</label>
+        <input type="password" id="new-admin-pass" placeholder="password" dir="ltr" />
+      </div>
+      <button class="btn btn-primary" id="add-admin-btn">+ حفظ مدير جديد</button>
+      <div id="admins-list" style="margin-top:12px;font-size:13px;color:#555"></div>
+    </div>
+    <div class="form-card">
       <h3 style="font-size:14px;margin-bottom:10px">عن جسر الرسائل</h3>
       <p style="font-size:13px;color:#555;line-height:1.8">
-        جسر الرسائل هو تطبيق أندرويد بيتثبت على الموبايل اللي بيستقبل رسائل التحويل (فودافون كاش / أورانج...).<br><br>
-        لما توصل رسالة تحويل، التطبيق بيبعتها للسيرفر، والسيرفر بيطابق المبلغ مع الطلبات المعلقة ويبعت الكارت للعميل أوتوماتيك.
+        1) ارفع السيرفر (Render) وحط رابطه هنا.<br>
+        2) في تطبيق جسر الرسائل حط: رابط السيرفر + /api/sms<br>
+        3) لو الجسر مش شغال: أرشيف الرسائل → تأكيد يدوي للطلب المعلق.<br>
+        4) تقدر تجرب بمبلغ الطلب من خانة محاكاة الرسالة.
       </p>
     </div>
   `;
@@ -677,6 +809,18 @@ function attachPageEvents(page) {
   if (page === 'packages') {
     bindClick('add-package-btn', doAddPackage);
   }
+  if (page === 'archive' || page === 'sms-bridge' || page === 'pending') {
+    bindClick('sim-sms-btn', simulateIncomingSms);
+  }
+  if (page === 'sms-device') {
+    bindClick('regen-device-btn', regenDeviceCode);
+    bindClick('copy-device-btn', function () {
+      var s = DB.get('settings', {}) || {};
+      var code = s.smsDeviceCode || '';
+      if (navigator.clipboard) navigator.clipboard.writeText(code);
+      alert('تم نسخ الرمز: ' + code);
+    });
+  }
   if (page === 'customers') {
     bindClick('add-customer-btn', doAddCustomer);
   }
@@ -691,6 +835,8 @@ function attachPageEvents(page) {
   }
   if (page === 'settings') {
     bindClick('save-settings', doSaveSettings);
+    bindClick('add-admin-btn', addAdminUser);
+    renderAdminsList();
   }
   if (page === 'backup') {
     bindClick('backup-btn', doBackup);
@@ -863,16 +1009,121 @@ function addCodes(text, packageId) {
   alert(`✅ تم إضافة ${added} كارت\n${skipped > 0 ? '⏭️ تم تخطي ' + skipped + ' مكرر' : ''}`);
 }
 
+function startEditPackage(id) {
+  const p = DB.get('packages').find(x => Number(x.id) === Number(id));
+  if (!p) return;
+  document.getElementById('new-pkg-name').value = p.name;
+  document.getElementById('new-pkg-price').value = p.price;
+  document.getElementById('edit-pkg-id').value = p.id;
+  document.getElementById('add-package-btn').textContent = 'حفظ التعديل';
+  window.scrollTo(0, 0);
+}
+
+async function confirmPending(orderId) {
+  if (window.USE_API && window.API_BASE !== undefined) {
+    if (!confirm('تأكيد استلام التحويل وإرسال الكارت؟')) return;
+    try {
+      const r = await fetch((window.API_BASE || '') + '/api/orders/' + orderId + '/confirm', { method: 'POST' });
+      const data = await r.json();
+      if (!r.ok) { alert(data.error || 'فشل التأكيد'); return; }
+      alert('تم إرسال الكارت: ' + data.cardCode);
+      if (window.bootKartApi) await window.bootKartApi();
+      openPage('archive');
+      return;
+    } catch (e) {}
+  }
+  const pending = DB.get('pending') || [];
+  const order = pending.find(p => String(p.id) === String(orderId));
+  if (!order) { alert('الطلب غير موجود'); return; }
+  if (!confirm('تأكيد استلام مبلغ ' + order.price + ' ج من ' + order.phone + '؟')) return;
+  fulfillPendingOrder(order, 'manual');
+}
+
+function simulateIncomingSms() {
+  const amount = parseFloat(document.getElementById('sim-amount').value);
+  if (!amount) { alert('اكتب المبلغ'); return; }
+  const pending = (DB.get('pending') || []).filter(o => Number(o.price) === amount);
+  const order = pending.sort(function(a,b){ return new Date(a.createdAt) - new Date(b.createdAt); })[0];
+  const messages = DB.get('messages') || [];
+  messages.unshift({
+    id: Date.now(),
+    body: 'تم استلام مبلغ ' + amount + ' جنيه',
+    amount: amount,
+    matched: !!order,
+    receivedAt: new Date().toISOString()
+  });
+  DB.set('messages', messages);
+  if (!order) {
+    alert('مفيش طلب معلق بنفس المبلغ');
+    openPage('archive');
+    return;
+  }
+  fulfillPendingOrder(order, 'auto');
+}
+
+function fulfillPendingOrder(order, type) {
+  const cards = DB.get('cards');
+  const card = cards.find(c => Number(c.packageId) === Number(order.packageId) && c.status === 'available');
+  if (!card) {
+    alert('لا توجد كروت متاحة لهذه الباقة');
+    return;
+  }
+  card.status = 'used';
+  card.soldAt = new Date().toISOString();
+  card.customer = order.phone;
+  DB.set('cards', cards);
+
+  const sales = DB.get('sales') || [];
+  sales.push({
+    id: Date.now(),
+    orderId: order.id,
+    packageId: order.packageId,
+    packageName: order.packageName,
+    price: order.price,
+    phone: order.phone,
+    name: order.name || '',
+    cardCode: card.code,
+    date: new Date().toLocaleString('ar-EG'),
+    type: type || 'manual',
+    wallet: order.walletName
+  });
+  DB.set('sales', sales);
+
+  let customers = DB.get('customers') || [];
+  let cust = customers.find(c => c.phone === order.phone);
+  if (cust) {
+    cust.purchases = (cust.purchases || 0) + 1;
+    if (order.name) cust.name = order.name;
+  } else {
+    customers.push({ phone: order.phone, name: order.name || '', purchases: 1 });
+  }
+  DB.set('customers', customers);
+
+  DB.set('pending', (DB.get('pending') || []).filter(p => String(p.id) !== String(order.id)));
+  updateStats();
+  alert('تم إرسال الكارت: ' + card.code + '\nللرقم: ' + order.phone);
+  openPage('archive');
+}
+
 function doAddPackage() {
   const name = document.getElementById('new-pkg-name').value.trim();
   const price = parseFloat(document.getElementById('new-pkg-price').value);
+  const editId = document.getElementById('edit-pkg-id') && document.getElementById('edit-pkg-id').value;
   if (!name || !price) {
     alert('أدخل اسم الباقة والسعر');
     return;
   }
   const packages = DB.get('packages');
-  const id = packages.length ? Math.max(...packages.map(p => p.id)) + 1 : 1;
-  packages.push({ id, name, price, active: true });
+  if (editId) {
+    const p = packages.find(x => String(x.id) === String(editId));
+    if (p) {
+      p.name = name;
+      p.price = price;
+    }
+  } else {
+    const id = packages.length ? Math.max.apply(null, packages.map(function(p){ return Number(p.id)||0; })) + 1 : 1;
+    packages.push({ id: id, name: name, price: price, active: true });
+  }
   DB.set('packages', packages);
   openPage('packages');
   updateStats();
@@ -1047,17 +1298,150 @@ function doRestore(e) {
 
 function doReset() {
   if (confirm('هل أنت متأكد من مسح كل البيانات؟ لا يمكن التراجع!')) {
-    localStorage.clear();
+    ['packages','cards','sales','customers','wallets','messages','pending','offers','pos','settings','initialized'].forEach(function (k) {
+      localStorage.removeItem('ks_' + k);
+    });
     initData();
     alert('تم إعادة التعيين');
     closePage();
   }
 }
 
-// ========== Init ==========
-try {
-  initData();
-} catch (e) {
-  console.log(e);
-  initData();
+// ========== Admin Auth ==========
+async function hashPass(text) {
+  try {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('ks|' + text));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+  } catch (e) {
+    return btoa(unescape(encodeURIComponent('ks|' + text)));
+  }
 }
+function getAdmins() {
+  var list = DB.get('admins', []);
+  if (!list.length) {
+    list = [{
+      user: 'star',
+      pass: 'b1b9548274926bb2d73f8f180ec829aa175f74f025bf87440220b1ddf767d10c',
+      createdAt: new Date().toISOString()
+    }];
+    DB.set('admins', list);
+  }
+  return list;
+}
+function setAdmins(list) {
+  DB.set('admins', list);
+}
+function currentAdmin() {
+  return sessionStorage.getItem('ks_admin') || '';
+}
+function setSession(user) {
+  sessionStorage.setItem('ks_admin', user);
+}
+function clearSession() {
+  sessionStorage.removeItem('ks_admin');
+}
+function showAdminApp() {
+  var login = document.getElementById('login-screen');
+  var appEl = document.getElementById('admin-app');
+  if (login) login.classList.remove('show');
+  if (appEl) appEl.classList.remove('locked');
+}
+function showLogin(signup) {
+  var login = document.getElementById('login-screen');
+  var appEl = document.getElementById('admin-app');
+  if (appEl) appEl.classList.add('locked');
+  if (login) login.classList.add('show');
+  var p2 = document.getElementById('login-pass2');
+  var hint = document.getElementById('login-hint');
+  var btn = document.getElementById('login-btn');
+  var tog = document.getElementById('toggle-signup');
+  if (signup) {
+    p2.style.display = '';
+    hint.textContent = 'إنشاء حساب مدير جديد';
+    btn.textContent = 'إنشاء الحساب والدخول';
+    tog.textContent = 'عندك حساب؟ دخول';
+    login.dataset.mode = 'signup';
+  } else {
+    p2.style.display = 'none';
+    hint.textContent = 'دخول المدير';
+    btn.textContent = 'دخول';
+    tog.textContent = 'مدير جديد؟ إنشاء حساب';
+    login.dataset.mode = 'login';
+  }
+}
+async function handleLogin() {
+  const user = (document.getElementById('login-user').value || '').trim();
+  const pass = document.getElementById('login-pass').value || '';
+  const pass2 = document.getElementById('login-pass2').value || '';
+  const mode = document.getElementById('login-screen').dataset.mode || 'login';
+  if (!user || user.length < 3) { alert('اكتب يوزر من 3 حروف على الأقل'); return; }
+  if (!pass || pass.length < 4) { alert('الباسوورد 4 حروف على الأقل'); return; }
+  const admins = getAdmins();
+  const hashed = await hashPass(pass);
+  if (mode === 'signup') {
+    if (pass !== pass2) { alert('تأكيد الباسوورد مش مطابق'); return; }
+    if (admins.find(a => a.user === user)) { alert('اليوزر موجود قبل كده'); return; }
+    admins.push({ user: user, pass: hashed, createdAt: new Date().toISOString() });
+    setAdmins(admins);
+    setSession(user);
+    showAdminApp();
+    alert('تم إنشاء حساب المدير: ' + user);
+    return;
+  }
+  const found = admins.find(a => a.user === user && a.pass === hashed);
+  if (!found) { alert('يوزر أو باسوورد غلط'); return; }
+  setSession(user);
+  showAdminApp();
+}
+async function addAdminUser() {
+  const user = (document.getElementById('new-admin-user').value || '').trim();
+  const pass = document.getElementById('new-admin-pass').value || '';
+  if (!user || user.length < 3 || !pass || pass.length < 4) {
+    alert('اكتب يوزر وباسوورد صح');
+    return;
+  }
+  const admins = getAdmins();
+  if (admins.find(a => a.user === user)) { alert('اليوزر موجود'); return; }
+  admins.push({ user: user, pass: await hashPass(pass), createdAt: new Date().toISOString() });
+  setAdmins(admins);
+  document.getElementById('new-admin-user').value = '';
+  document.getElementById('new-admin-pass').value = '';
+  renderAdminsList();
+  alert('تم إضافة المدير');
+}
+function renderAdminsList() {
+  const el = document.getElementById('admins-list');
+  if (!el) return;
+  const admins = getAdmins();
+  el.innerHTML = admins.length
+    ? ('المديرين: ' + admins.map(a => escapeHtml(a.user)).join('، '))
+    : 'لا يوجد مديرين بعد';
+}
+function logoutAdmin() {
+  clearSession();
+  showLogin(false);
+}
+
+function wireAuth() {
+  const btn = document.getElementById('login-btn');
+  const tog = document.getElementById('toggle-signup');
+  if (btn) btn.addEventListener('click', handleLogin);
+  if (tog) tog.addEventListener('click', function () {
+    showLogin(document.getElementById('login-screen').dataset.mode !== 'signup');
+  });
+  document.querySelectorAll('.icon-btn.door').forEach(function (b) {
+    b.addEventListener('click', logoutAdmin);
+  });
+}
+
+// ========== Init ==========
+(async function () {
+  try {
+    if (window.bootKartApi) await window.bootKartApi();
+    if (window.installApiBridge) window.installApiBridge(DB);
+  } catch (e) {}
+  try { initData(); } catch (e) { initData(); }
+  wireAuth();
+  if (currentAdmin()) showAdminApp();
+  else showLogin(getAdmins().length === 0);
+})();
