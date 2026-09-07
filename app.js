@@ -1,1447 +1,843 @@
-// ========== Data Store (LocalStorage) ==========
-const DB = {
-  get(key, def = []) {
-    try {
-      return JSON.parse(localStorage.getItem('ks_' + key)) || def;
-    } catch {
-      return def;
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Cache-Control" content="no-store" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>كرت شبكة - شراء كارت v6</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      font-family: 'Cairo', Tahoma, Arial, sans-serif;
+      background: #f0f0f0;
+      direction: rtl;
+      min-height: 100vh;
     }
-  },
-  set(key, val) {
-    localStorage.setItem('ks_' + key, JSON.stringify(val));
-  }
-};
+    .app {
+      max-width: 420px;
+      margin: 0 auto;
+      background: #f5f5f5;
+      min-height: 100vh;
+      box-shadow: 0 0 30px rgba(0,0,0,0.1);
+    }
 
-// Initialize default data
-function initData() {
-  if (!localStorage.getItem('ks_initialized')) {
-    DB.set('packages', [
-      { id: 1, name: 'باقة 100 جيجا', price: 120, active: true },
-      { id: 2, name: 'باقة 50 جيجا', price: 70, active: true },
-      { id: 3, name: 'باقة 20 جيجا', price: 35, active: true },
-      { id: 4, name: 'باقة مكالمات', price: 50, active: true },
-      { id: 5, name: 'باقة سوشيال', price: 40, active: true },
-    ]);
-    DB.set('cards', generateCards(142));
-    DB.set('sales', []);
-    DB.set('customers', []);
-    DB.set('wallets', [
-      { id: 1, name: 'فودافون كاش', number: '01012345678', balance: 0 },
-      { id: 2, name: 'أورانج كاش', number: '01234567890', balance: 0 },
-    ]);
-    DB.set('offers', []);
-    DB.set('messages', []);
-    DB.set('pos', []);
-    DB.set('pending', []);
-    localStorage.setItem('ks_initialized', '1');
-  }
-  updateStats();
-}
+    /* Header */
+    .header {
+      background: #000;
+      color: #fff;
+      padding: 16px;
+      text-align: center;
+      position: relative;
+    }
+    .logo-circle {
+      width: 60px;
+      height: 60px;
+      background: #fff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 8px;
+      font-size: 32px;
+      border: 2px solid #ddd;
+    }
+    .header h1 {
+      font-size: 18px;
+      font-weight: 800;
+    }
+    .header p {
+      font-size: 12px;
+      opacity: 0.8;
+      margin-top: 4px;
+    }
 
-function generateCards(count) {
-  const cards = [];
-  for (let i = 0; i < count; i++) {
-    cards.push({
-      id: i + 1,
-      code: 'CARD-' + Math.random().toString(36).substring(2, 10).toUpperCase(),
-      packageId: (i % 5) + 1,
-      status: 'available',
-      soldAt: null,
-      customer: null
-    });
-  }
-  return cards;
-}
+    /* Content */
+    .content {
+      padding: 16px;
+    }
 
-function updateStats() {
-  const cards = DB.get('cards');
-  const packages = DB.get('packages');
-  const available = cards.filter(c => c.status === 'available').length;
-  const used = cards.filter(c => c.status === 'used').length;
-  const offers = cards.filter(c => c.status === 'offer').length;
+    .section-title {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: #222;
+    }
 
-  const nums = document.querySelectorAll('.stat-number');
-  if (nums.length >= 4) {
-    nums[0].textContent = offers;
-    nums[1].textContent = used;
-    nums[2].textContent = available;
-    nums[3].textContent = packages.length;
-  }
-}
+    /* Package Cards */
+    .packages {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .package-card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: all 0.2s;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.06);
+    }
+    .package-card:active {
+      transform: scale(0.98);
+    }
+    .package-card.selected {
+      border-color: #f5a623;
+      background: #fff8e6;
+    }
+    .package-icon {
+      width: 50px;
+      height: 50px;
+      background: #f5a62322;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      flex-shrink: 0;
+    }
+    .package-info {
+      flex: 1;
+    }
+    .package-name {
+      font-weight: 800;
+      font-size: 15px;
+      color: #222;
+    }
+    .package-desc {
+      font-size: 12px;
+      color: #777;
+      margin-top: 2px;
+    }
+    .package-price {
+      font-weight: 800;
+      font-size: 18px;
+      color: #f5a623;
+      white-space: nowrap;
+    }
+    .package-price span {
+      font-size: 12px;
+      font-weight: 600;
+    }
 
-// ========== Navigation ==========
-const pageTitles = {
-  'feed-cards': 'تغذية كروت الباقات',
-  'packages': 'باقات الكروت',
-  'archive': 'أرشيف الرسائل والكروت',
-  'offers': 'عروض الباقات',
-  'wallets': 'حسابات المحافظ والبنوك',
-  'sales': 'مبيعات الكروت',
-  'customers': 'العملاء',
-  'manual-send': 'إرسال يدوي',
-  'settings': 'الإعدادات',
-  'pos': 'نقاط البيع والبقالات',
-  'backup': 'نسخ احتياطي',
-  'sms-bridge': 'جسر الرسائل',
-  'sms-device': 'رمز جهاز فحص الرسائل',
-  'payment-review': 'مراجعة تحويلات فودافون كاش',
-  'pending': 'الطلبات المعلقة',
-  'available-cards': 'الكروت المتاحة',
-  'used-cards': 'الكروت المستخدمة',
-  'offer-cards': 'كروت العروض',
-  'all-packages': 'كل الباقات'
-};
+    /* Payment Section */
+    .payment-box {
+      background: #fff;
+      border-radius: 14px;
+      padding: 18px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.06);
+      display: none;
+    }
+    .payment-box.show {
+      display: block;
+    }
+    .payment-box h3 {
+      font-size: 15px;
+      margin-bottom: 14px;
+      font-weight: 700;
+    }
+    .wallet-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .wallet-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      background: #f8f8f8;
+      border-radius: 10px;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .wallet-item.selected {
+      border-color: #27ae60;
+      background: #eafaf1;
+    }
+    .wallet-item .icon {
+      font-size: 24px;
+    }
+    .wallet-item .info {
+      flex: 1;
+    }
+    .wallet-item .name {
+      font-weight: 700;
+      font-size: 14px;
+    }
+    .wallet-item .number {
+      font-size: 13px;
+      color: #555;
+      direction: ltr;
+      text-align: right;
+    }
+    .copy-btn {
+      background: #eee;
+      border: none;
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: 'Cairo', Tahoma, Arial, sans-serif;
+    }
+    .amount-box {
+      background: #111;
+      color: #fff;
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .amount-box .lbl { font-size: 13px; opacity: .85; }
+    .amount-box .val { font-size: 26px; font-weight: 800; color: #f5a623; }
+    .pkg-meta { font-size: 12px; color: #777; margin-top: 2px; }
+    .totals-bar {
+      background: #fff;
+      border-radius: 12px;
+      padding: 10px 12px;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-around;
+      text-align: center;
+      box-shadow: 0 1px 5px rgba(0,0,0,.06);
+    }
+    .totals-bar .n { font-weight: 800; font-size: 16px; }
+    .totals-bar .l { font-size: 11px; color: #777; }
+    .btn-primary[disabled] { opacity: 1; background: #f5a623; color: #111; }
 
-document.querySelectorAll('.menu-item').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.menu-item').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    openPage(btn.dataset.page);
-  });
-});
+    .form-group {
+      margin-bottom: 14px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: #333;
+    }
+    .form-group input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      font-size: 14px;
+      font-family: 'Cairo', Tahoma, Arial, sans-serif;
+      background: #fafafa;
+      outline: none;
+    }
+    .form-group input:focus {
+      border-color: #f5a623;
+      background: #fff;
+    }
 
-// Make stats clickable
-document.querySelectorAll('.stat-card').forEach((card, index) => {
-  card.style.cursor = 'pointer';
-  card.addEventListener('click', () => {
-    if (index === 0) openPage('offer-cards');
-    else if (index === 1) openPage('used-cards');
-    else if (index === 2) openPage('available-cards');
-    else if (index === 3) openPage('packages');
-  });
-});
+    .btn {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 800;
+      font-family: 'Cairo', Tahoma, Arial, sans-serif;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: #f5a623;
+      color: #000;
+    }
+    .btn-primary:active {
+      background: #e09410;
+    }
+    .btn-primary:disabled {
+      background: #f5a623;
+      color: #111;
+      opacity: 1;
+    }
 
-document.getElementById('back-btn').addEventListener('click', closePage);
+    /* Instructions */
+    .instructions {
+      background: #fff8e6;
+      border: 1px solid #f5a62355;
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 16px;
+      font-size: 13px;
+      line-height: 1.8;
+      color: #555;
+    }
+    .instructions strong {
+      color: #222;
+    }
 
-window.addEventListener('popstate', function () {
-  closePage();
-});
+    /* Success Screen */
+    .success-screen {
+      display: none;
+      text-align: center;
+      padding: 40px 20px;
+    }
+    .success-screen.show {
+      display: block;
+    }
+    .success-icon {
+      font-size: 64px;
+      margin-bottom: 16px;
+    }
+    .success-screen h2 {
+      font-size: 20px;
+      margin-bottom: 8px;
+    }
+    .success-screen p {
+      color: #666;
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    .code-box {
+      background: #000;
+      color: #f5a623;
+      font-size: 20px;
+      font-weight: 800;
+      padding: 16px;
+      border-radius: 12px;
+      margin: 20px 0;
+      letter-spacing: 2px;
+      direction: ltr;
+    }
 
-function openPage(page) {
-  document.getElementById('page-title').textContent = pageTitles[page] || page;
-  document.getElementById('page-content').innerHTML = renderPage(page);
-  document.getElementById('page-container').classList.remove('hidden');
-  document.querySelector('.app').style.display = '';
-  document.querySelector('.app').classList.add('is-hidden-home');
-  attachPageEvents(page);
-  history.pushState({ page: page }, '', '#page');
-}
+    /* Footer */
+    .footer {
+      text-align: center;
+      padding: 16px;
+      font-size: 12px;
+      color: #888;
+    }
 
-function closePage() {
-  document.getElementById('page-container').classList.add('hidden');
-  document.querySelector('.app').classList.remove('is-hidden-home');
-  document.querySelector('.app').style.display = '';
-  document.getElementById('page-content').innerHTML = '';
-  updateStats();
-  if (location.hash === '#page') {
-    history.replaceState({}, '', location.pathname);
-  }
-}
+    /* Waiting state */
+    .waiting-box {
+      display: none;
+      background: #fff;
+      border-radius: 14px;
+      padding: 24px;
+      text-align: center;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.06);
+    }
+    .waiting-box.show {
+      display: block;
+    }
+    .my-cards { background:#fff; border-radius:14px; padding:14px; margin:16px 0; box-shadow:0 1px 5px rgba(0,0,0,.06); }
+    .my-card-item { border:1px solid #eee; border-radius:10px; padding:12px; margin-top:10px; }
+    .my-card-item .code { font-weight:800; letter-spacing:1px; direction:ltr; text-align:right; font-size:16px; color:#111; }
+    .my-card-item .meta { font-size:12px; color:#666; margin-top:4px; }
+    .lookup-row { display:flex; gap:8px; }
+    .lookup-row input { flex:1; }
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid #eee;
+      border-top-color: #f5a623;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 14px;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
 
-// ========== Helpers ==========
-function getPackageName(id) {
-  const p = DB.get('packages').find(x => x.id === id);
-  return p ? p.name : '-';
-}
-
-function escapeHtml(str) {
-  if (!str) return '';
-  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
-// ========== Page Renderers ==========
-function renderPage(page) {
-  switch (page) {
-    case 'manual-send': return renderManualSend();
-    case 'packages': return renderPackages();
-    case 'feed-cards': return renderFeedCards();
-    case 'sales': return renderSales();
-    case 'customers': return renderCustomers();
-    case 'wallets': return renderWallets();
-    case 'archive': return renderArchive();
-    case 'offers': return renderOffers();
-    case 'settings': return renderSettings();
-    case 'pos': return renderPOS();
-    case 'backup': return renderBackup();
-    case 'sms-bridge': return renderArchive();
-    case 'sms-device': return renderSmsDevice();
-    case 'payment-review': return renderPaymentReview();
-    case 'pending': return renderArchive();
-    case 'available-cards': return renderCardsList('available');
-    case 'used-cards': return renderCardsList('used');
-    case 'offer-cards': return renderCardsList('offer');
-    default: return '<div class="empty-state"><div class="icon">🚧</div><p>قريباً</p></div>';
-  }
-}
-
-// ----- Cards List (Available / Used / Offers) -----
-function renderCardsList(status) {
-  const cards = DB.get('cards').filter(c => c.status === status);
-  const packages = DB.get('packages');
-  const titleMap = { available: 'المتاحة', used: 'المستخدمة', offer: 'العروض' };
-
-  let filterHtml = `
-    <div class="form-card" style="margin-bottom:12px">
-      <div class="form-group" style="margin:0">
-        <label>تصفية حسب الباقة</label>
-        <select id="cards-filter">
-          <option value="all">كل الباقات</option>
-          ${packages.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('')}
-        </select>
-      </div>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#000000" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  <meta name="apple-mobile-web-app-title" content="كرت شبكة" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <script src="config.js"></script>
+  <script src="api.js"></script>
+</head>
+<body>
+  <div class="app">
+    <!-- Header -->
+    <div class="header">
+      <div class="logo-circle">🦅</div>
+      <h1>كرت شبكة</h1>
+      <p>اختر باقتك وأتم الدفع بسهولة</p>
     </div>
-  `;
 
-  let rows = cards.map(c => `
-    <tr data-pkg="${c.packageId}">
-      <td dir="ltr" style="font-size:12px;font-weight:700">${escapeHtml(c.code)}</td>
-      <td>${escapeHtml(getPackageName(c.packageId))}</td>
-      <td>${c.customer ? '<span dir="ltr">'+escapeHtml(c.customer)+'</span>' : '-'}</td>
-      <td style="font-size:11px">${c.soldAt ? new Date(c.soldAt).toLocaleDateString('ar-EG') : '-'}</td>
-      <td>
-        ${status === 'available' ? `
-          <button class="btn" style="padding:4px 10px;font-size:11px;background:#e74c3c;color:#fff" onclick="deleteCard(${c.id})">حذف</button>
-        ` : ''}
-      </td>
-    </tr>
-  `).join('');
-
-  return `
-    ${filterHtml}
-    <div class="mini-stats">
-      <div class="mini-stat">
-        <div class="num">${cards.length}</div>
-        <div class="lbl">كروت ${titleMap[status]}</div>
-      </div>
-    </div>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>كود الكارت</th>
-            <th>الباقة</th>
-            <th>العميل</th>
-            <th>التاريخ</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody id="cards-tbody">
-          ${rows || '<tr><td colspan="5" style="text-align:center;padding:30px">لا توجد كروت</td></tr>'}
-        </tbody>
-      </table>
-    </div>
-  `;
-}
-
-// ----- Manual Send -----
-function renderManualSend() {
-  const packages = DB.get('packages').filter(p => p.active);
-  const options = packages.map(p => {
-    const avail = DB.get('cards').filter(c => c.packageId === p.id && c.status === 'available').length;
-    return `<option value="${p.id}">${escapeHtml(p.name)} - ${p.price} ج (${avail} متاح)</option>`;
-  }).join('');
-
-  return `
-    <div class="form-card">
-      <div class="form-group">
-        <label>اختر الباقة</label>
-        <select id="ms-package">${options}</select>
-      </div>
-      <div class="form-group">
-        <label>رقم العميل (واتساب)</label>
-        <input type="tel" id="ms-phone" placeholder="01xxxxxxxxx" dir="ltr" />
-      </div>
-      <div class="form-group">
-        <label>اسم العميل (اختياري)</label>
-        <input type="text" id="ms-name" placeholder="اسم العميل" />
-      </div>
-      <div class="form-group">
-        <label>ملاحظات</label>
-        <textarea id="ms-notes" rows="2" placeholder="ملاحظات إضافية..."></textarea>
-      </div>
-      <button class="btn btn-primary" id="ms-send-btn">🚀 إرسال الكارت الآن</button>
-    </div>
-    <div class="form-card">
-      <h3 style="margin-bottom:12px;font-size:15px">آخر الإرسالات اليدوية</h3>
-      <div id="ms-history"></div>
-    </div>
-  `;
-}
-
-// ----- Packages -----
-function renderPackages() {
-  const packages = DB.get('packages');
-  const cards = DB.get('cards');
-
-  let rows = packages.map(p => {
-    const available = cards.filter(c => c.packageId === p.id && c.status === 'available').length;
-    const used = cards.filter(c => c.packageId === p.id && c.status === 'used').length;
-    return `
-      <tr>
-        <td>${escapeHtml(p.name)}</td>
-        <td>${p.price} ج</td>
-        <td>${available}</td>
-        <td>${used}</td>
-        <td><span class="badge ${p.active ? 'badge-success' : 'badge-danger'}">${p.active ? 'نشط' : 'متوقف'}</span></td>
-        <td>
-          <button class="btn" style="padding:4px 8px;font-size:11px;background:#f5a623;color:#111;margin-left:4px" onclick="startEditPackage(${p.id})">تعديل</button>
-          <button class="btn" style="padding:4px 8px;font-size:11px;background:#3498db;color:#fff;margin-left:4px" onclick="togglePackage(${p.id})">${p.active ? 'إيقاف' : 'تفعيل'}</button>
-          <button class="btn" style="padding:4px 8px;font-size:11px;background:#e74c3c;color:#fff" onclick="deletePackage(${p.id})">حذف</button>
-        </td>
-      </tr>
-    `;
-  }).join('');
-
-  return `
-    <div class="form-card">
-      <div class="form-group">
-        <label>اسم الباقة الجديدة</label>
-        <input type="text" id="new-pkg-name" placeholder="مثال: باقة 200 جيجا" />
-      </div>
-      <div class="form-group">
-        <label>السعر (جنيه)</label>
-        <input type="number" id="new-pkg-price" placeholder="100" />
-      </div>
-      <button class="btn btn-primary" id="add-package-btn">+ إضافة باقة</button>
-      <input type="hidden" id="edit-pkg-id" value="" />
-    </div>
-    <div class="form-card">
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>اسم الباقة</th>
-              <th>السعر</th>
-              <th>متاح</th>
-              <th>مباع</th>
-              <th>الحالة</th>
-              <th>إجراءات</th>
-            </tr>
-          </thead>
-          <tbody>${rows || '<tr><td colspan="6" style="text-align:center">لا توجد باقات</td></tr>'}</tbody>
-        </table>
-      </div>
-    </div>
-  `;
-}
-
-// ----- Feed Cards -----
-function renderFeedCards() {
-  const packages = DB.get('packages');
-  const options = packages.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
-
-  return `
-    <div class="form-card">
-      <div class="form-group">
-        <label>اختر الباقة</label>
-        <select id="feed-package">${options}</select>
-      </div>
-      <div class="form-group">
-        <label>الصق أكواد الكروت (كل كود في سطر)</label>
-        <textarea id="feed-codes" rows="6" placeholder="CARD-XXXXXX&#10;CARD-YYYYYY&#10;..." dir="ltr" style="text-align:left"></textarea>
-      </div>
-      <button class="btn btn-primary" id="feed-btn" style="margin-bottom:12px">📥 تغذية من النص</button>
-    </div>
-
-    <div class="form-card">
-      <h3 style="font-size:14px;margin-bottom:12px">أو ارفع ملف</h3>
-      <p style="font-size:12px;color:#666;margin-bottom:12px;line-height:1.7">
-        المدعوم حالياً: ملفات <strong>TXT</strong> أو <strong>CSV</strong><br>
-        (كل كود في سطر منفصل)<br>
-        ملفات Word و PDF هتتضاف في التحديث الجاي
-      </p>
-      <input type="file" id="feed-file" accept=".txt,.csv,.text" style="margin-bottom:12px;width:100%" />
-      <button class="btn btn-primary" id="feed-file-btn">📂 تغذية من الملف</button>
-    </div>
-  `;
-}
-
-// ----- Sales -----
-function renderSales() {
-  const sales = DB.get('sales').slice().reverse();
-  const total = sales.reduce((s, x) => s + (x.price || 0), 0);
-
-  let rows = sales.slice(0, 100).map(s => `
-    <tr>
-      <td>${escapeHtml(s.packageName || '-')}</td>
-      <td>${s.price} ج</td>
-      <td dir="ltr">${escapeHtml(s.phone || '-')}</td>
-      <td style="font-size:11px">${escapeHtml(s.date || '-')}</td>
-      <td><span class="badge ${s.type === 'auto' ? 'badge-success' : 'badge-warning'}">${s.type === 'auto' ? 'تلقائي' : 'يدوي'}</span></td>
-    </tr>
-  `).join('');
-
-  return `
-    <div class="mini-stats">
-      <div class="mini-stat">
-        <div class="num">${sales.length}</div>
-        <div class="lbl">عدد المبيعات</div>
-      </div>
-      <div class="mini-stat">
-        <div class="num">${total} ج</div>
-        <div class="lbl">إجمالي الإيراد</div>
-      </div>
-    </div>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>الباقة</th>
-            <th>السعر</th>
-            <th>العميل</th>
-            <th>التاريخ</th>
-            <th>النوع</th>
-          </tr>
-        </thead>
-        <tbody>${rows || '<tr><td colspan="5" style="text-align:center;padding:30px">لا توجد مبيعات بعد</td></tr>'}</tbody>
-      </table>
-    </div>
-  `;
-}
-
-// ----- Customers -----
-function renderCustomers() {
-  const customers = DB.get('customers');
-
-  let rows = customers.map((c, i) => `
-    <tr>
-      <td>${escapeHtml(c.name || '-')}</td>
-      <td dir="ltr">${escapeHtml(c.phone)}</td>
-      <td>${c.purchases || 0}</td>
-      <td>
-        <button class="btn" style="padding:4px 8px;font-size:11px;background:#e74c3c;color:#fff" onclick="deleteCustomer('${escapeHtml(c.phone)}')">حذف</button>
-      </td>
-    </tr>
-  `).join('');
-
-  return `
-    <div class="form-card">
-      <div class="form-group">
-        <label>اسم العميل</label>
-        <input type="text" id="cust-name" placeholder="الاسم" />
-      </div>
-      <div class="form-group">
-        <label>رقم الهاتف</label>
-        <input type="tel" id="cust-phone" placeholder="01xxxxxxxxx" dir="ltr" />
-      </div>
-      <button class="btn btn-primary" id="add-customer-btn">+ إضافة عميل</button>
-    </div>
-    <div class="form-card">
-      <div class="mini-stats" style="margin-bottom:12px">
-        <div class="mini-stat">
-          <div class="num">${customers.length}</div>
-          <div class="lbl">إجمالي العملاء</div>
+    <div class="content" id="main-content">
+      <!-- Step 1: Choose Package -->
+      <div class="my-cards" id="my-cards-box">
+        <div class="section-title" style="margin-bottom:8px">كروتي في الصفحة دي</div>
+        <div class="lookup-row">
+          <input type="tel" id="lookup-phone" placeholder="اكتب رقمك لعرض كروتك" dir="ltr" />
+          <button type="button" class="copy-btn" id="lookup-btn">عرض</button>
         </div>
+        <div id="my-cards-list"></div>
       </div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>الاسم</th>
-              <th>الرقم</th>
-              <th>المشتريات</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>${rows || '<tr><td colspan="4" style="text-align:center;padding:30px">لا يوجد عملاء بعد</td></tr>'}</tbody>
-        </table>
+      <div class="section-title">اختر الباقة</div>
+      <div class="totals-bar" id="totals-bar"></div>
+      <div class="packages" id="packages-list">
+        <!-- Filled by JS -->
       </div>
-    </div>
-  `;
-}
 
-// ----- Wallets -----
-function renderWallets() {
-  const wallets = DB.get('wallets');
-  let html = wallets.map(w => `
-    <div class="form-card" style="display:flex;justify-content:space-between;align-items:center;gap:10px">
-      <div>
-        <div style="font-weight:700;font-size:15px">${escapeHtml(w.name)}</div>
-        <div style="color:#666;font-size:13px;direction:ltr;text-align:right">${escapeHtml(w.number)}</div>
-      </div>
-      <div style="display:flex;align-items:center;gap:8px">
-        <div style="font-weight:800;font-size:16px;color:#27ae60">${w.balance} ج</div>
-        <button class="btn" style="padding:4px 8px;font-size:11px;background:#e74c3c;color:#fff" onclick="deleteWallet(${w.id})">حذف</button>
-      </div>
-    </div>
-  `).join('');
+      <!-- Step 2: Payment -->
+      <div class="payment-box" id="payment-box">
+        <h3>إتمام الدفع</h3>
 
-  return `
-    ${html || '<div class="form-card"><p style="text-align:center;color:#888">لا توجد محافظ</p></div>'}
-    <div class="form-card">
-      <div class="form-group">
-        <label>اسم المحفظة / البنك</label>
-        <input type="text" id="wallet-name" placeholder="فودافون كاش / إنستا باي..." />
-      </div>
-      <div class="form-group">
-        <label>الرقم</label>
-        <input type="text" id="wallet-number" placeholder="01xxxxxxxxx" dir="ltr" />
-      </div>
-      <button class="btn btn-primary" id="add-wallet-btn">+ إضافة محفظة / حساب</button>
-    </div>
-  `;
-}
-
-function getDeviceCode() {
-  var s = DB.get('settings', {}) || {};
-  if (!s.smsDeviceCode) {
-    s.smsDeviceCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-    DB.set('settings', s);
-  }
-  return s.smsDeviceCode;
-}
-
-function renderSmsDevice() {
-  var s = DB.get('settings', {}) || {};
-  var code = getDeviceCode();
-  var last = s.smsLastSeen ? new Date(s.smsLastSeen).toLocaleString('ar-EG') : 'لم يتصل بعد';
-  return `
-    <div class="form-card">
-      <h3 style="font-size:16px;margin-bottom:8px">ربط فاحص الرسائل</h3>
-      <p style="font-size:13px;color:#555;line-height:1.8;margin-bottom:12px">
-        ثبّت تطبيق فحص الرسائل على موبايل المحفظة (فودافون كاش).<br>
-        حط الرمز ده في التطبيق عشان الرسائل توصل هنا.
-      </p>
-      <div style="background:#111;color:#f5a623;font-size:28px;font-weight:800;letter-spacing:4px;text-align:center;padding:18px;border-radius:12px;direction:ltr">${escapeHtml(code)}</div>
-      <p style="text-align:center;font-size:12px;color:#888;margin:10px 0">آخر اتصال: ${escapeHtml(last)}</p>
-      <button class="btn btn-primary" id="regen-device-btn">توليد رمز جديد</button>
-      <button class="btn" id="copy-device-btn" style="width:100%;margin-top:8px;background:#eee">نسخ الرمز</button>
-    </div>
-    <div class="form-card">
-      <h3 style="font-size:14px;margin-bottom:8px">رابط الإرسال للتطبيق</h3>
-      <p style="font-size:12px;direction:ltr;text-align:left;background:#f6f6f6;padding:10px;border-radius:8px;word-break:break-all">${escapeHtml((window.API_BASE || location.origin) + '/api/sms')}</p>
-      <p style="font-size:13px;color:#555;line-height:1.8;margin-top:10px">
-        التطبيق يبعت JSON:<br>
-        <span dir="ltr" style="font-size:12px">{"deviceCode":"${escapeHtml(code)}","body":"تم استلام 120 جنيه","from":"Vodafone"}</span>
-      </p>
-      <a class="btn btn-primary" href="inspector.html" style="display:block;text-align:center;text-decoration:none;margin-top:10px">فتح صفحة الفاحص اليدوي</a>
-    </div>
-  `;
-}
-
-function renderPaymentReview() {
-  const messages = (DB.get('messages') || []).slice().reverse();
-  const pending = DB.get('pending') || [];
-  let rows = messages.map(m => `
-    <tr>
-      <td style="font-size:11px">${m.receivedAt ? new Date(m.receivedAt).toLocaleString('ar-EG') : '-'}</td>
-      <td dir="ltr">${escapeHtml(m.from || '-')}</td>
-      <td>${m.amount || '-'}</td>
-      <td style="font-size:12px">${escapeHtml((m.body || '').substring(0, 60))}</td>
-      <td><span class="badge ${m.matched ? 'badge-success' : 'badge-warning'}">${m.matched ? 'مطابقة' : 'مراجعة'}</span></td>
-      <td>
-        ${!m.matched ? `<button class="btn" style="padding:4px 8px;font-size:11px;background:#27ae60;color:#fff" onclick="approvePayment('${m.id}')">تأكيد</button>` : ''}
-      </td>
-    </tr>
-  `).join('');
-  return `
-    <div class="form-card">
-      <h3 style="font-size:16px;margin-bottom:8px">مراجعة رسائل الدفع</h3>
-      <p style="font-size:13px;color:#555;margin-bottom:12px">تحويلات فودافون كاش الواردة من جهاز الفحص. أكّد اللي مطابق لطلب معلق (${pending.length} طلب).</p>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>الوقت</th><th>المرسل</th><th>المبلغ</th><th>الرسالة</th><th>الحالة</th><th></th></tr></thead>
-          <tbody>${rows || '<tr><td colspan="6" style="text-align:center;padding:24px">لا توجد رسائل بعد</td></tr>'}</tbody>
-        </table>
-      </div>
-    </div>
-  `;
-}
-
-async function approvePayment(id) {
-  if (!confirm('تأكيد التحويل وارسال الكارت؟')) return;
-  if (window.USE_API) {
-    try {
-      const r = await fetch((window.API_BASE || '') + '/api/payments/' + id + '/approve', { method: 'POST' });
-      const data = await r.json();
-      if (!r.ok) { alert(data.error || 'فشل'); return; }
-      alert('تم إرسال الكارت: ' + data.cardCode);
-      if (window.bootKartApi) await window.bootKartApi();
-      openPage('payment-review');
-      return;
-    } catch (e) {}
-  }
-  const messages = DB.get('messages') || [];
-  const msg = messages.find(m => String(m.id) === String(id));
-  if (!msg) return;
-  const pending = DB.get('pending') || [];
-  const order = pending.filter(o => !msg.amount || Number(o.price) === Number(msg.amount))[0];
-  if (!order) { alert('لا يوجد طلب معلق مطابق'); return; }
-  fulfillPendingOrder(order, 'review');
-}
-
-function regenDeviceCode() {
-  var s = DB.get('settings', {}) || {};
-  s.smsDeviceCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-  DB.set('settings', s);
-  if (window.USE_API) {
-    fetch((window.API_BASE || '') + '/api/device/regen', { method: 'POST' }).finally(function(){ openPage('sms-device'); });
-    return;
-  }
-  openPage('sms-device');
-}
-
-// ----- Archive -----
-function renderArchive() {
-  const messages = DB.get('messages').slice().reverse();
-  const pending = DB.get('pending') || [];
-
-  let pendingHtml = '';
-  if (pending.length) {
-    pendingHtml = `
-      <div class="form-card">
-        <h3 style="font-size:14px;margin-bottom:10px;color:#e67e22">⏳ طلبات في انتظار التأكيد (${pending.length})</h3>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>الباقة</th><th>المبلغ</th><th>الرقم</th><th>الوقت</th><th></th></tr></thead>
-            <tbody>
-              ${pending.map(p => `
-                <tr>
-                  <td>${escapeHtml(p.packageName)}</td>
-                  <td>${p.price} ج</td>
-                  <td dir="ltr">${escapeHtml(p.phone)}</td>
-                  <td style="font-size:11px">${new Date(p.createdAt).toLocaleString('ar-EG')}</td>
-                  <td>
-                    <button class="btn" style="padding:4px 10px;font-size:11px;background:#27ae60;color:#fff" onclick="confirmPending('${p.id}')">تأكيد يدوي</button>
-                  </td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
+        <div class="instructions">
+          <strong>طريقة الدفع:</strong><br>
+          1. انسخ رقم المحفظة<br>
+          2. حوّل <b>المبلغ المطلوب</b> الظاهر تحت<br>
+          3. اكتب رقم المحفظة اللي حوّلت منها<br>
+          4. اضغط "تم التحويل" وانتظر التأكيد
         </div>
-      </div>
-    `;
-  }
 
-  let rows = messages.slice(0, 50).map(m => `
-    <tr>
-      <td style="font-size:12px">${escapeHtml((m.body || '').substring(0, 50))}...</td>
-      <td>${m.amount || '-'}</td>
-      <td><span class="badge ${m.matched ? 'badge-success' : 'badge-warning'}">${m.matched ? 'تم المطابقة' : 'انتظار'}</span></td>
-    </tr>
-  `).join('');
+        <div class="amount-box">
+          <div class="lbl">المبلغ المطلوب تحويله</div>
+          <div class="val" id="required-amount">اختار الباقة أولاً</div>
+        </div>
 
-  return `
-    ${pendingHtml}
-    <div class="form-card">
-      <p style="font-size:13px;color:#666;margin-bottom:12px;line-height:1.7">
-        هنا تظهر رسائل التأكيد الواردة من <strong>جسر الرسائل</strong>.<br>
-        لو الجسر مش شغال استخدم <strong>تأكيد يدوي</strong> على الطلب المعلق.
-      </p>
-      <div class="form-group">
-        <label>تجربة رسالة تحويل (بدل الجسر)</label>
-        <input type="number" id="sim-amount" placeholder="اكتب المبلغ زي 120" />
+        <div class="section-title" style="font-size:13px">اختر طريقة الدفع</div>
+        <div class="wallet-list" id="wallets-list"></div>
+
+        <div class="form-group">
+          <label>رقم هاتفك (هيتحفظ عليه الكارت هنا في الصفحة)</label>
+          <input type="tel" id="customer-phone" placeholder="01xxxxxxxxx" dir="ltr" />
+        </div>
+        <div class="form-group">
+          <label>الرقم المحوّل منه (محفظتك)</label>
+          <input type="tel" id="payer-from" placeholder="رقم فودافون كاش اللي حولت منه" dir="ltr" />
+        </div>
+
+        <div class="form-group">
+          <label>اسمك (اختياري)</label>
+          <input type="text" id="customer-name" placeholder="الاسم" />
+        </div>
+
+        <button type="button" class="btn btn-primary" id="confirm-btn">تم التحويل - تأكيد الطلب</button>
       </div>
-      <button class="btn btn-primary" id="sim-sms-btn">محاكاة رسالة وتحويل الكارت</button>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>الرسالة</th>
-              <th>المبلغ</th>
-              <th>الحالة</th>
-            </tr>
-          </thead>
-          <tbody>${rows || '<tr><td colspan="3" style="text-align:center;padding:30px">لا توجد رسائل بعد<br><small>هتظهر هنا لما يتوصل جسر الرسائل</small></td></tr>'}</tbody>
-        </table>
+
+      <!-- Waiting -->
+      <div class="waiting-box" id="waiting-box">
+        <div class="spinner"></div>
+        <h3 style="margin-bottom:8px">في انتظار تأكيد التحويل...</h3>
+        <p style="color:#666;font-size:13px;line-height:1.7">
+          استنى شوية، النظام بيراجع رسالة التحويل<br>
+          وهيبعتلك الكارت أول ما يتأكد
+        </p>
       </div>
     </div>
-  `;
-}
 
-// ----- Offers -----
-function renderOffers() {
-  const offers = DB.get('offers');
-  return `
-    <div class="form-card">
-      <div class="form-group">
-        <label>عنوان العرض</label>
-        <input type="text" id="offer-title" placeholder="خصم 10% على باقة 100 جيجا" />
-      </div>
-      <div class="form-group">
-        <label>تفاصيل العرض</label>
-        <textarea id="offer-desc" rows="3" placeholder="اكتب تفاصيل العرض..."></textarea>
-      </div>
-      <button class="btn btn-primary" id="add-offer-btn">+ إضافة عرض</button>
+    <!-- Success -->
+    <div class="success-screen" id="success-screen">
+      <div class="success-icon">✅</div>
+      <h2>تم تأكيد الدفع!</h2>
+      <p>الكارت ظهر هنا واتسجل في صفحتك</p>
+      <div class="code-box" id="card-code">CARD-XXXXXXXX</div>
+      <p id="success-pkg" style="font-size:13px;margin-top:8px"></p>
+      <p style="font-size:13px">محفوظ على رقم<br><span id="success-phone"></span><br>مفيش واتساب — افتح الصفحة بنفس الرقم تلاقيه</p>
+      <button class="btn btn-primary" id="copy-card-btn" style="margin-top:16px;max-width:280px">نسخ الكود</button>
+      <div id="success-saved-list" style="text-align:right;margin-top:18px"></div>
+      <button class="btn" style="margin-top:10px;max-width:280px;background:#eee" onclick="location.reload()">رجوع لكروتي وشراء كارت آخر</button>
     </div>
-    <div class="form-card">
-      ${offers.length ? offers.map((o, i) => `
-        <div style="padding:12px 0;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center">
-          <div>
-            <div style="font-weight:700">${escapeHtml(o.title)}</div>
-            <div style="font-size:12px;color:#666">${escapeHtml(o.desc || '')}</div>
+
+    <div class="footer">
+      للتواصل: 01023545726
+    </div>
+  </div>
+
+  <script>
+    // Shared DB helpers (same as admin)
+    
+    async function loadFromApi() {
+      const API = window.API_BASE || '';
+      if (!API) return false;
+      try {
+        const [pkgs, wallets] = await Promise.all([
+          fetch(API + '/api/packages').then(r => r.json()),
+          fetch(API + '/api/wallets').then(r => r.json())
+        ]);
+        if (Array.isArray(pkgs) && pkgs.length) {
+          // map to local shape for rendering
+          window._apiPackages = pkgs;
+          window._apiWallets = wallets;
+          return true;
+        }
+      } catch (e) { console.log(e); }
+      return false;
+    }
+
+    const DB = {
+      get(key, def = []) {
+        try { return JSON.parse(localStorage.getItem('ks_' + key)) || def; }
+        catch { return def; }
+      },
+      set(key, val) {
+        localStorage.setItem('ks_' + key, JSON.stringify(val));
+      }
+    };
+
+    // Default data if empty
+    function ensureData() {
+      if (!localStorage.getItem('ks_initialized')) {
+        // Redirect-like: create minimal data
+        DB.set('packages', [
+          { id: 1, name: 'باقة 100 جيجا', price: 120, cards: 30, active: true },
+          { id: 2, name: 'باقة 50 جيجا', price: 70, cards: 45, active: true },
+          { id: 3, name: 'باقة 20 جيجا', price: 35, cards: 40, active: true },
+          { id: 4, name: 'باقة مكالمات', price: 50, cards: 15, active: true },
+          { id: 5, name: 'باقة سوشيال', price: 40, cards: 12, active: true },
+        ]);
+        DB.set('wallets', [
+          { id: 1, name: 'فودافون كاش', number: '01012345678', balance: 0 },
+          { id: 2, name: 'أورانج كاش', number: '01234567890', balance: 0 },
+        ]);
+        // Generate some cards
+        const cards = [];
+        for (let i = 0; i < 142; i++) {
+          cards.push({
+            id: i + 1,
+            code: 'CARD-' + Math.random().toString(36).substring(2, 10).toUpperCase(),
+            packageId: (i % 5) + 1,
+            status: 'available',
+            soldAt: null,
+            customer: null
+          });
+        }
+        DB.set('cards', cards);
+        DB.set('sales', []);
+        DB.set('customers', []);
+        DB.set('pending', []);
+        localStorage.setItem('ks_initialized', '1');
+      }
+    }
+
+    let selectedPackage = null;
+    let selectedWallet = null;
+
+
+    function myKey(phone){ return 'ks_mycards_' + String(phone||'').trim(); }
+    function loadLocalCards(phone){
+      try { return JSON.parse(localStorage.getItem(myKey(phone))||'[]'); } catch(e){ return []; }
+    }
+    function saveMyCard(item){
+      if(!item || !item.phone || !item.code) return;
+      var list = loadLocalCards(item.phone);
+      if(list.some(function(x){ return x.code === item.code; })) return;
+      list.unshift(item);
+      localStorage.setItem(myKey(item.phone), JSON.stringify(list));
+      localStorage.setItem('ks_last_phone', item.phone);
+    }
+    function renderMyCards(list){
+      var box = document.getElementById('my-cards-list');
+      if(!box) return;
+      if(!list || !list.length){
+        box.innerHTML = '<p style="font-size:13px;color:#888;margin-top:10px">لا توجد كروت محفوظة على الرقم ده</p>';
+        return;
+      }
+      box.innerHTML = list.map(function(c){
+        return '<div class="my-card-item"><div class="code">'+c.code+'</div><div class="meta">'+(c.packageName||'')+' — '+(c.price||'')+' ج<br>'+(c.date||'')+'</div><button class="copy-btn" type="button" data-code="'+c.code+'" style="margin-top:8px">نسخ</button></div>';
+      }).join('');
+      box.querySelectorAll('[data-code]').forEach(function(b){
+        b.addEventListener('click', function(){ copyNumber(b.getAttribute('data-code')); });
+      });
+    }
+    async function showMyCards(phone){
+      phone = String(phone||'').trim();
+      if(!phone){ renderMyCards([]); return; }
+      var local = loadLocalCards(phone);
+      if(window.USE_API || window.API_BASE){
+        try{
+          var r = await fetch((window.API_BASE||'') + '/api/my-cards?phone=' + encodeURIComponent(phone));
+          var remote = await r.json();
+          if(Array.isArray(remote)){
+            remote.forEach(function(x){ saveMyCard({code:x.code, packageName:x.packageName, price:x.price, date:x.date, phone:phone}); });
+            local = loadLocalCards(phone);
+          }
+        }catch(e){}
+      }
+      renderMyCards(local);
+    }
+    function revealCard(code, phone, pkg, price){
+      saveMyCard({ code: code, phone: phone, packageName: pkg||'', price: price||'', date: new Date().toLocaleString('ar-EG') });
+      document.getElementById('main-content').style.display = 'none';
+      document.getElementById('card-code').textContent = code;
+      document.getElementById('success-phone').textContent = phone;
+      var sp = document.getElementById('success-pkg');
+      if(sp) sp.textContent = (pkg||'') + (price ? (' — ' + price + ' ج') : '');
+      document.getElementById('success-screen').classList.add('show');
+      var hold = document.getElementById('success-saved-list');
+      if (hold) {
+        var all = loadLocalCards(phone);
+        hold.innerHTML = '<div class="section-title">كل كروتك المحفوظة هنا</div>' + all.map(function(c){
+          return '<div class="my-card-item"><div class="code">'+c.code+'</div><div class="meta">'+(c.packageName||'')+' — '+(c.price||'')+' ج</div></div>';
+        }).join('');
+      }
+    }
+
+    function renderPackages() {
+      const packages = (window._apiPackages || DB.get('packages').filter(p => p.active !== false));
+      const cards = DB.get('cards');
+      const list = document.getElementById('packages-list');
+      const availAll = cards.filter(c => c.status === 'available').length;
+      const usedAll = cards.filter(c => c.status === 'used').length;
+      const bar = document.getElementById('totals-bar');
+      if (bar) {
+        bar.innerHTML = '<div><div class="n">'+packages.length+'</div><div class="l">باقات</div></div>'
+          + '<div><div class="n">'+availAll+'</div><div class="l">كروت متاحة</div></div>'
+          + '<div><div class="n">'+usedAll+'</div><div class="l">مباعة</div></div>';
+      }
+
+      list.innerHTML = packages.map(p => {
+        const available = cards.filter(c => Number(c.packageId) === Number(p.id) && c.status === 'available').length;
+        const disabled = available === 0;
+        return `
+          <div class="package-card ${disabled ? 'disabled' : ''}" data-id="${p.id}" style="${disabled ? 'opacity:0.5;pointer-events:none' : ''}">
+            <div class="package-icon">🔑</div>
+            <div class="package-info">
+              <div class="package-name">${p.name}</div>
+              <div class="package-desc">${available} كارت متاح</div>
+            </div>
+            <div class="package-price">${p.price} <span>ج</span></div>
           </div>
-          <button class="btn" style="padding:4px 8px;font-size:11px;background:#e74c3c;color:#fff" onclick="deleteOffer(${i})">حذف</button>
-        </div>
-      `).join('') : '<p style="text-align:center;color:#888;padding:20px">لا توجد عروض حالياً</p>'}
-    </div>
-  `;
-}
+        `;
+      }).join('');
 
-// ----- Settings -----
-function renderSettings() {
-  const settings = DB.get('settings', {});
-  return `
-    <div class="form-card">
-      <div class="form-group">
-        <label>اسم المتجر</label>
-        <input type="text" id="set-name" value="${escapeHtml(settings.storeName || 'كرت شبكة')}" />
-      </div>
-      <div class="form-group">
-        <label>رقم التواصل</label>
-        <input type="tel" id="set-phone" value="${escapeHtml(settings.phone || '01023545726')}" dir="ltr" />
-      </div>
-      <div class="form-group">
-        <label>رابط جسر الرسائل (API)</label>
-        <input type="text" id="set-bridge" value="${escapeHtml(settings.bridgeUrl || '')}" placeholder="https://your-server.com/api/sms" dir="ltr" style="text-align:left" />
-      </div>
-      <div class="form-group">
-        <label>توكن واتساب Business API (اختياري)</label>
-        <input type="text" id="set-whatsapp" value="${escapeHtml(settings.whatsappToken || '')}" placeholder="WhatsApp Token" dir="ltr" style="text-align:left" />
-      </div>
-      <button class="btn btn-primary" id="save-settings">💾 حفظ الإعدادات</button>
-    </div>
-    <div class="form-card">
-      <h3 style="font-size:14px;margin-bottom:10px">إضافة مدير جديد</h3>
-      <div class="form-group">
-        <label>يوزر المدير</label>
-        <input type="text" id="new-admin-user" placeholder="username" dir="ltr" />
-      </div>
-      <div class="form-group">
-        <label>باسوورد المدير</label>
-        <input type="password" id="new-admin-pass" placeholder="password" dir="ltr" />
-      </div>
-      <button class="btn btn-primary" id="add-admin-btn">+ حفظ مدير جديد</button>
-      <div id="admins-list" style="margin-top:12px;font-size:13px;color:#555"></div>
-    </div>
-    <div class="form-card">
-      <h3 style="font-size:14px;margin-bottom:10px">عن جسر الرسائل</h3>
-      <p style="font-size:13px;color:#555;line-height:1.8">
-        1) ارفع السيرفر (Render) وحط رابطه هنا.<br>
-        2) في تطبيق جسر الرسائل حط: رابط السيرفر + /api/sms<br>
-        3) لو الجسر مش شغال: أرشيف الرسائل → تأكيد يدوي للطلب المعلق.<br>
-        4) تقدر تجرب بمبلغ الطلب من خانة محاكاة الرسالة.
-      </p>
-    </div>
-  `;
-}
-
-// ----- POS -----
-function renderPOS() {
-  const pos = DB.get('pos');
-  let rows = pos.map(p => `
-    <tr>
-      <td>${escapeHtml(p.name)}</td>
-      <td dir="ltr">${escapeHtml(p.phone)}</td>
-      <td>${p.balance || 0} ج</td>
-      <td>
-        <button class="btn" style="padding:4px 8px;font-size:11px;background:#e74c3c;color:#fff" onclick="deletePOS(${p.id})">حذف</button>
-      </td>
-    </tr>
-  `).join('');
-
-  return `
-    <div class="form-card">
-      <div class="form-group">
-        <label>اسم نقطة البيع</label>
-        <input type="text" id="pos-name" placeholder="بقالة أبو أحمد" />
-      </div>
-      <div class="form-group">
-        <label>رقم الهاتف</label>
-        <input type="tel" id="pos-phone" placeholder="01xxxxxxxxx" dir="ltr" />
-      </div>
-      <div class="form-group">
-        <label>الرصيد الافتتاحي</label>
-        <input type="number" id="pos-balance" placeholder="0" value="0" />
-      </div>
-      <button class="btn btn-primary" id="add-pos-btn">+ إضافة نقطة بيع</button>
-    </div>
-    <div class="form-card">
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>الاسم</th>
-              <th>الرقم</th>
-              <th>الرصيد</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>${rows || '<tr><td colspan="4" style="text-align:center;padding:30px">لا توجد نقاط بيع</td></tr>'}</tbody>
-        </table>
-      </div>
-    </div>
-  `;
-}
-
-// ----- Backup -----
-function renderBackup() {
-  return `
-    <div class="form-card">
-      <p style="font-size:14px;margin-bottom:16px;line-height:1.7">
-        خذ نسخة احتياطية من كل البيانات (كروت - مبيعات - عملاء - إعدادات) وحفظها على جهازك.
-      </p>
-      <button class="btn btn-primary" id="backup-btn" style="margin-bottom:10px">💾 تحميل نسخة احتياطية</button>
-      <button class="btn" id="restore-btn" style="width:100%;background:#3498db;color:#fff">📥 استعادة من ملف</button>
-      <input type="file" id="restore-file" accept=".json" style="display:none" />
-    </div>
-    <div class="form-card">
-      <button class="btn btn-danger" id="reset-btn" style="width:100%">🗑️ مسح كل البيانات وإعادة التعيين</button>
-    </div>
-  `;
-}
-
-// ========== Page Events ==========
-function bindClick(id, fn) {
-  var el = document.getElementById(id);
-  if (el) el.addEventListener('click', fn);
-}
-
-function attachPageEvents(page) {
-  if (page === 'manual-send') {
-    bindClick('ms-send-btn', doManualSend);
-    renderManualHistory();
-  }
-  if (page === 'feed-cards') {
-    bindClick('feed-btn', doFeedCards);
-    bindClick('feed-file-btn', doFeedFromFile);
-  }
-  if (page === 'packages') {
-    bindClick('add-package-btn', doAddPackage);
-  }
-  if (page === 'archive' || page === 'sms-bridge' || page === 'pending') {
-    bindClick('sim-sms-btn', simulateIncomingSms);
-  }
-  if (page === 'sms-device') {
-    bindClick('regen-device-btn', regenDeviceCode);
-    bindClick('copy-device-btn', function () {
-      var s = DB.get('settings', {}) || {};
-      var code = s.smsDeviceCode || '';
-      if (navigator.clipboard) navigator.clipboard.writeText(code);
-      alert('تم نسخ الرمز: ' + code);
-    });
-  }
-  if (page === 'customers') {
-    bindClick('add-customer-btn', doAddCustomer);
-  }
-  if (page === 'wallets') {
-    bindClick('add-wallet-btn', doAddWallet);
-  }
-  if (page === 'pos') {
-    bindClick('add-pos-btn', doAddPOS);
-  }
-  if (page === 'offers') {
-    bindClick('add-offer-btn', doAddOffer);
-  }
-  if (page === 'settings') {
-    bindClick('save-settings', doSaveSettings);
-    bindClick('add-admin-btn', addAdminUser);
-    renderAdminsList();
-  }
-  if (page === 'backup') {
-    bindClick('backup-btn', doBackup);
-    bindClick('restore-btn', function () {
-      var f = document.getElementById('restore-file');
-      if (f) f.click();
-    });
-    var rf = document.getElementById('restore-file');
-    if (rf) rf.addEventListener('change', doRestore);
-    bindClick('reset-btn', doReset);
-  }
-  if (page === 'available-cards' || page === 'used-cards' || page === 'offer-cards') {
-    var filter = document.getElementById('cards-filter');
-    if (filter) {
-      filter.addEventListener('change', function() {
-        var val = this.value;
-        document.querySelectorAll('#cards-tbody tr').forEach(function(tr) {
-          if (val === 'all' || tr.getAttribute('data-pkg') === val) tr.style.display = '';
-          else tr.style.display = 'none';
+      list.querySelectorAll('.package-card').forEach(card => {
+        card.addEventListener('click', () => {
+          list.querySelectorAll('.package-card').forEach(c => c.classList.remove('selected'));
+          card.classList.add('selected');
+          const id = Number(card.getAttribute('data-id'));
+          selectedPackage = packages.find(p => Number(p.id) === id);
+          var amt = document.getElementById('required-amount');
+          if (amt && selectedPackage) amt.textContent = selectedPackage.price + ' ج';
+          document.getElementById('payment-box').classList.add('show');
+          document.getElementById('payment-box').scrollIntoView({ behavior: 'smooth' });
         });
       });
     }
-  }
-}
 
-// ========== Actions ==========
-function doManualSend() {
-  const packageId = parseInt(document.getElementById('ms-package').value);
-  const phone = document.getElementById('ms-phone').value.trim();
-  const name = document.getElementById('ms-name').value.trim();
-  const notes = document.getElementById('ms-notes').value.trim();
+    function renderWallets() {
+      const wallets = (window._apiWallets || DB.get('wallets'));
+      const list = document.getElementById('wallets-list');
 
-  if (!phone || phone.length < 10) {
-    alert('من فضلك أدخل رقم العميل بشكل صحيح');
-    return;
-  }
+      list.innerHTML = wallets.map(w => `
+        <div class="wallet-item" data-id="${w.id}">
+          <div class="icon">${(w.name||'').indexOf('فودافون')>=0 ? '🔴' : '🟠'}</div>
+          <div class="info">
+            <div class="name">${w.name}</div>
+            <div class="number">${w.number}</div>
+          </div>
+          <button class="copy-btn" type="button">نسخ</button>
+        </div>
+      `).join('');
 
-  const packages = DB.get('packages');
-  const pkg = packages.find(p => p.id === packageId);
-  if (!pkg) return;
-
-  const cards = DB.get('cards');
-  const card = cards.find(c => c.packageId === packageId && c.status === 'available');
-
-  if (!card) {
-    alert('لا توجد كروت متاحة لهذه الباقة');
-    return;
-  }
-
-  card.status = 'used';
-  card.soldAt = new Date().toISOString();
-  card.customer = phone;
-  DB.set('cards', cards);
-
-  const sales = DB.get('sales');
-  sales.push({
-    id: Date.now(),
-    packageId,
-    packageName: pkg.name,
-    price: pkg.price,
-    phone,
-    name,
-    notes,
-    cardCode: card.code,
-    date: new Date().toLocaleString('ar-EG'),
-    type: 'manual'
-  });
-  DB.set('sales', sales);
-
-  let customers = DB.get('customers');
-  let cust = customers.find(c => c.phone === phone);
-  if (cust) {
-    cust.purchases = (cust.purchases || 0) + 1;
-    if (name) cust.name = name;
-  } else {
-    customers.push({ phone, name: name || '', purchases: 1 });
-  }
-  DB.set('customers', customers);
-
-  alert(`✅ تم إرسال الكارت بنجاح\n\nالكود: ${card.code}\nالباقة: ${pkg.name}\nللعميل: ${phone}`);
-  renderManualHistory();
-  updateStats();
-}
-
-function renderManualHistory() {
-  const sales = DB.get('sales').filter(s => s.type === 'manual').slice().reverse().slice(0, 15);
-  const el = document.getElementById('ms-history');
-  if (!el) return;
-
-  if (!sales.length) {
-    el.innerHTML = '<p style="color:#888;font-size:13px;text-align:center">لا توجد إرسالات يدوية بعد</p>';
-    return;
-  }
-
-  el.innerHTML = `
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>الباقة</th>
-            <th>الكود</th>
-            <th>الرقم</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${sales.map(s => `
-            <tr>
-              <td>${escapeHtml(s.packageName)}</td>
-              <td dir="ltr" style="font-size:12px">${escapeHtml(s.cardCode)}</td>
-              <td dir="ltr">${escapeHtml(s.phone)}</td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-    </div>
-  `;
-}
-
-function doFeedCards() {
-  const packageId = parseInt(document.getElementById('feed-package').value);
-  const text = document.getElementById('feed-codes').value.trim();
-  if (!text) {
-    alert('الصق أكواد الكروت أولاً');
-    return;
-  }
-  addCodes(text, packageId);
-  document.getElementById('feed-codes').value = '';
-}
-
-function doFeedFromFile() {
-  const fileInput = document.getElementById('feed-file');
-  const file = fileInput.files[0];
-  if (!file) {
-    alert('اختر ملف أولاً');
-    return;
-  }
-  const packageId = parseInt(document.getElementById('feed-package').value);
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    addCodes(e.target.result, packageId);
-    fileInput.value = '';
-  };
-  reader.readAsText(file);
-}
-
-function addCodes(text, packageId) {
-  const codes = text.split(/[\n,;]+/).map(c => c.trim()).filter(Boolean);
-  const cards = DB.get('cards');
-  let added = 0;
-  let skipped = 0;
-
-  codes.forEach(code => {
-    if (!cards.find(c => c.code === code)) {
-      cards.push({
-        id: Date.now() + Math.random(),
-        code,
-        packageId,
-        status: 'available',
-        soldAt: null,
-        customer: null
+      list.querySelectorAll('.wallet-item').forEach(item => {
+        item.addEventListener('click', () => {
+          list.querySelectorAll('.wallet-item').forEach(i => i.classList.remove('selected'));
+          item.classList.add('selected');
+          selectedWallet = wallets.find(w => String(w.id) === String(item.getAttribute('data-id')));
+        });
+        var copyBtn = item.querySelector('.copy-btn');
+        if (copyBtn) {
+          copyBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            var w = wallets.find(x => String(x.id) === String(item.getAttribute('data-id')));
+            if (w) copyNumber(w.number);
+          });
+        }
       });
-      added++;
-    } else {
-      skipped++;
+      if (wallets.length && !selectedWallet) {
+        var first = list.querySelector('.wallet-item');
+        if (first) first.click();
+      }
     }
-  });
 
-  DB.set('cards', cards);
-  updateStats();
-  alert(`✅ تم إضافة ${added} كارت\n${skipped > 0 ? '⏭️ تم تخطي ' + skipped + ' مكرر' : ''}`);
-}
-
-function startEditPackage(id) {
-  const p = DB.get('packages').find(x => Number(x.id) === Number(id));
-  if (!p) return;
-  document.getElementById('new-pkg-name').value = p.name;
-  document.getElementById('new-pkg-price').value = p.price;
-  document.getElementById('edit-pkg-id').value = p.id;
-  document.getElementById('add-package-btn').textContent = 'حفظ التعديل';
-  window.scrollTo(0, 0);
-}
-
-async function confirmPending(orderId) {
-  if (window.USE_API && window.API_BASE !== undefined) {
-    if (!confirm('تأكيد استلام التحويل وإرسال الكارت؟')) return;
-    try {
-      const r = await fetch((window.API_BASE || '') + '/api/orders/' + orderId + '/confirm', { method: 'POST' });
-      const data = await r.json();
-      if (!r.ok) { alert(data.error || 'فشل التأكيد'); return; }
-      alert('تم إرسال الكارت: ' + data.cardCode);
-      if (window.bootKartApi) await window.bootKartApi();
-      openPage('archive');
-      return;
-    } catch (e) {}
-  }
-  const pending = DB.get('pending') || [];
-  const order = pending.find(p => String(p.id) === String(orderId));
-  if (!order) { alert('الطلب غير موجود'); return; }
-  if (!confirm('تأكيد استلام مبلغ ' + order.price + ' ج من ' + order.phone + '؟')) return;
-  fulfillPendingOrder(order, 'manual');
-}
-
-function simulateIncomingSms() {
-  const amount = parseFloat(document.getElementById('sim-amount').value);
-  if (!amount) { alert('اكتب المبلغ'); return; }
-  const pending = (DB.get('pending') || []).filter(o => Number(o.price) === amount);
-  const order = pending.sort(function(a,b){ return new Date(a.createdAt) - new Date(b.createdAt); })[0];
-  const messages = DB.get('messages') || [];
-  messages.unshift({
-    id: Date.now(),
-    body: 'تم استلام مبلغ ' + amount + ' جنيه',
-    amount: amount,
-    matched: !!order,
-    receivedAt: new Date().toISOString()
-  });
-  DB.set('messages', messages);
-  if (!order) {
-    alert('مفيش طلب معلق بنفس المبلغ');
-    openPage('archive');
-    return;
-  }
-  fulfillPendingOrder(order, 'auto');
-}
-
-function fulfillPendingOrder(order, type) {
-  const cards = DB.get('cards');
-  const card = cards.find(c => Number(c.packageId) === Number(order.packageId) && c.status === 'available');
-  if (!card) {
-    alert('لا توجد كروت متاحة لهذه الباقة');
-    return;
-  }
-  card.status = 'used';
-  card.soldAt = new Date().toISOString();
-  card.customer = order.phone;
-  DB.set('cards', cards);
-
-  const sales = DB.get('sales') || [];
-  sales.push({
-    id: Date.now(),
-    orderId: order.id,
-    packageId: order.packageId,
-    packageName: order.packageName,
-    price: order.price,
-    phone: order.phone,
-    name: order.name || '',
-    cardCode: card.code,
-    date: new Date().toLocaleString('ar-EG'),
-    type: type || 'manual',
-    wallet: order.walletName
-  });
-  DB.set('sales', sales);
-
-  let customers = DB.get('customers') || [];
-  let cust = customers.find(c => c.phone === order.phone);
-  if (cust) {
-    cust.purchases = (cust.purchases || 0) + 1;
-    if (order.name) cust.name = order.name;
-  } else {
-    customers.push({ phone: order.phone, name: order.name || '', purchases: 1 });
-  }
-  DB.set('customers', customers);
-
-  DB.set('pending', (DB.get('pending') || []).filter(p => String(p.id) !== String(order.id)));
-  updateStats();
-  alert('تم إرسال الكارت: ' + card.code + '\nللرقم: ' + order.phone);
-  openPage('archive');
-}
-
-function doAddPackage() {
-  const name = document.getElementById('new-pkg-name').value.trim();
-  const price = parseFloat(document.getElementById('new-pkg-price').value);
-  const editId = document.getElementById('edit-pkg-id') && document.getElementById('edit-pkg-id').value;
-  if (!name || !price) {
-    alert('أدخل اسم الباقة والسعر');
-    return;
-  }
-  const packages = DB.get('packages');
-  if (editId) {
-    const p = packages.find(x => String(x.id) === String(editId));
-    if (p) {
-      p.name = name;
-      p.price = price;
-    }
-  } else {
-    const id = packages.length ? Math.max.apply(null, packages.map(function(p){ return Number(p.id)||0; })) + 1 : 1;
-    packages.push({ id: id, name: name, price: price, active: true });
-  }
-  DB.set('packages', packages);
-  openPage('packages');
-  updateStats();
-}
-
-function togglePackage(id) {
-  const packages = DB.get('packages');
-  const p = packages.find(x => x.id === id);
-  if (p) {
-    p.active = !p.active;
-    DB.set('packages', packages);
-    openPage('packages');
-  }
-}
-
-function deletePackage(id) {
-  if (!confirm('حذف الباقة؟ الكروت المرتبطة لن تُحذف.')) return;
-  let packages = DB.get('packages').filter(p => p.id !== id);
-  DB.set('packages', packages);
-  openPage('packages');
-  updateStats();
-}
-
-function doAddCustomer() {
-  const name = document.getElementById('cust-name').value.trim();
-  const phone = document.getElementById('cust-phone').value.trim();
-  if (!phone || phone.length < 10) {
-    alert('أدخل رقم الهاتف بشكل صحيح');
-    return;
-  }
-  let customers = DB.get('customers');
-  if (customers.find(c => c.phone === phone)) {
-    alert('هذا الرقم موجود مسبقاً');
-    return;
-  }
-  customers.push({ phone, name: name || '', purchases: 0 });
-  DB.set('customers', customers);
-  openPage('customers');
-}
-
-function deleteCustomer(phone) {
-  if (!confirm('حذف هذا العميل؟')) return;
-  let customers = DB.get('customers').filter(c => c.phone !== phone);
-  DB.set('customers', customers);
-  openPage('customers');
-}
-
-function doAddWallet() {
-  const name = document.getElementById('wallet-name').value.trim();
-  const number = document.getElementById('wallet-number').value.trim();
-  if (!name || !number) {
-    alert('أدخل اسم المحفظة والرقم');
-    return;
-  }
-  const wallets = DB.get('wallets');
-  const id = wallets.length ? Math.max(...wallets.map(w => w.id)) + 1 : 1;
-  wallets.push({ id, name, number, balance: 0 });
-  DB.set('wallets', wallets);
-  openPage('wallets');
-}
-
-function deleteWallet(id) {
-  if (!confirm('حذف هذه المحفظة؟')) return;
-  let wallets = DB.get('wallets').filter(w => w.id !== id);
-  DB.set('wallets', wallets);
-  openPage('wallets');
-}
-
-function doAddPOS() {
-  const name = document.getElementById('pos-name').value.trim();
-  const phone = document.getElementById('pos-phone').value.trim();
-  const balance = parseFloat(document.getElementById('pos-balance').value) || 0;
-  if (!name || !phone) {
-    alert('أدخل الاسم والرقم');
-    return;
-  }
-  const pos = DB.get('pos');
-  const id = pos.length ? Math.max(...pos.map(p => p.id)) + 1 : 1;
-  pos.push({ id, name, phone, balance });
-  DB.set('pos', pos);
-  openPage('pos');
-}
-
-function deletePOS(id) {
-  if (!confirm('حذف نقطة البيع؟')) return;
-  let pos = DB.get('pos').filter(p => p.id !== id);
-  DB.set('pos', pos);
-  openPage('pos');
-}
-
-function doAddOffer() {
-  const title = document.getElementById('offer-title').value.trim();
-  const desc = document.getElementById('offer-desc').value.trim();
-  if (!title) {
-    alert('أدخل عنوان العرض');
-    return;
-  }
-  const offers = DB.get('offers');
-  offers.push({ title, desc });
-  DB.set('offers', offers);
-  openPage('offers');
-}
-
-function deleteOffer(index) {
-  let offers = DB.get('offers');
-  offers.splice(index, 1);
-  DB.set('offers', offers);
-  openPage('offers');
-}
-
-function doSaveSettings() {
-  DB.set('settings', {
-    storeName: document.getElementById('set-name').value.trim(),
-    phone: document.getElementById('set-phone').value.trim(),
-    bridgeUrl: document.getElementById('set-bridge').value.trim(),
-    whatsappToken: document.getElementById('set-whatsapp').value.trim()
-  });
-  alert('✅ تم حفظ الإعدادات');
-}
-
-function deleteCard(id) {
-  if (!confirm('حذف هذا الكارت؟')) return;
-  let cards = DB.get('cards').filter(c => c.id !== id);
-  DB.set('cards', cards);
-  openPage('available-cards');
-  updateStats();
-}
-
-function doBackup() {
-  const data = {
-    packages: DB.get('packages'),
-    cards: DB.get('cards'),
-    sales: DB.get('sales'),
-    customers: DB.get('customers'),
-    wallets: DB.get('wallets'),
-    messages: DB.get('messages'),
-    pos: DB.get('pos'),
-    offers: DB.get('offers'),
-    settings: DB.get('settings', {}),
-    pending: DB.get('pending', []),
-    exportedAt: new Date().toISOString()
-  };
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `kart-shabaka-backup-${Date.now()}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-function doRestore(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (ev) => {
-    try {
-      const data = JSON.parse(ev.target.result);
-      ['packages','cards','sales','customers','wallets','messages','pos','offers','pending'].forEach(k => {
-        if (data[k]) DB.set(k, data[k]);
+    function copyNumber(num) {
+      navigator.clipboard.writeText(num).then(() => {
+        alert('تم نسخ الرقم: ' + num);
+      }).catch(() => {
+        prompt('انسخ الرقم:', num);
       });
-      if (data.settings) DB.set('settings', data.settings);
-      alert('✅ تم استعادة النسخة الاحتياطية');
-      updateStats();
-      closePage();
-    } catch {
-      alert('ملف غير صالح');
     }
-  };
-  reader.readAsText(file);
-}
 
-function doReset() {
-  if (confirm('هل أنت متأكد من مسح كل البيانات؟ لا يمكن التراجع!')) {
-    ['packages','cards','sales','customers','wallets','messages','pending','offers','pos','settings','initialized'].forEach(function (k) {
-      localStorage.removeItem('ks_' + k);
+    document.getElementById('confirm-btn').addEventListener('click', async () => {
+      const phone = document.getElementById('customer-phone').value.trim();
+      const payerFrom = (document.getElementById('payer-from').value || '').trim();
+      const name = document.getElementById('customer-name').value.trim();
+
+      if (!selectedPackage) { alert('اختار الباقة أولاً عشان يظهر المبلغ المطلوب'); return; }
+      if (!selectedWallet) { alert('اختار طريقة الدفع'); return; }
+      if (!phone || phone.length < 10) { alert('اكتب رقم هاتفك صح'); return; }
+      if (!payerFrom || payerFrom.length < 10) { alert('اكتب الرقم اللي حوّلت منه'); return; }
+
+      document.getElementById('payment-box').classList.remove('show');
+      document.getElementById('packages-list').style.display = 'none';
+      document.querySelector('.section-title').style.display = 'none';
+      document.getElementById('waiting-box').classList.add('show');
+
+      const API = window.API_BASE || '';
+
+      if (API) {
+        // وضع السيرفر + جسر الرسائل
+        try {
+          const res = await fetch(API + '/api/orders', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              packageId: selectedPackage.id,
+              phone,
+              name,
+              walletId: selectedWallet.id,
+              payerFrom
+            })
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            alert(data.error || 'فشل إنشاء الطلب');
+            location.reload();
+            return;
+          }
+          const orderId = data.order.id;
+          // انتظر تأكيد الدفع من جسر الرسائل
+          const poll = setInterval(async () => {
+            try {
+              const r = await fetch(API + '/api/orders/' + orderId);
+              const st = await r.json();
+              if (st.status === 'completed') {
+                clearInterval(poll);
+                revealCard(st.cardCode, st.phone, selectedPackage && selectedPackage.name, selectedPackage && selectedPackage.price);
+              }
+            } catch (e) {}
+          }, 3000);
+        } catch (e) {
+          alert('تعذر الاتصال بالسيرفر');
+          location.reload();
+        }
+      } else {
+        // وضع تجريبي محلي (بدون سيرفر)
+        const pending = DB.get('pending');
+        const order = {
+          id: Date.now(),
+          packageId: selectedPackage.id,
+          packageName: selectedPackage.name,
+          price: selectedPackage.price,
+          phone,
+          name,
+          walletId: selectedWallet.id,
+          walletName: selectedWallet.name,
+          payerFrom,
+          status: 'pending',
+          createdAt: new Date().toISOString()
+        };
+        pending.push(order);
+        DB.set('pending', pending);
+        var waitBox = document.getElementById('waiting-box');
+        waitBox.querySelector('p').innerHTML = 'الطلب اتسجل. الكارت <b>مش هينزل</b> غير بعد ما التحويل يتأكد.<br>المبلغ المطلوب: <b>'+order.price+' ج</b><br>استنى تأكيد المدير أو الجسر.';
+        var poll = setInterval(function() {
+          var sales = DB.get('sales') || [];
+          var found = sales.find(function(s){ return String(s.orderId) === String(order.id); });
+          if (found && found.cardCode) {
+            clearInterval(poll);
+            revealCard(found.cardCode, found.phone, found.packageName, found.price);
+          }
+        }, 2000);
+      }
     });
-    initData();
-    alert('تم إعادة التعيين');
-    closePage();
-  }
-}
 
-// ========== Admin Auth ==========
-async function hashPass(text) {
-  try {
-    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('ks|' + text));
-    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
-  } catch (e) {
-    return btoa(unescape(encodeURIComponent('ks|' + text)));
-  }
-}
-function getAdmins() {
-  var list = DB.get('admins', []);
-  if (!list.length) {
-    list = [{
-      user: 'star',
-      pass: 'b1b9548274926bb2d73f8f180ec829aa175f74f025bf87440220b1ddf767d10c',
-      createdAt: new Date().toISOString()
-    }];
-    DB.set('admins', list);
-  }
-  return list;
-}
-function setAdmins(list) {
-  DB.set('admins', list);
-}
-function currentAdmin() {
-  return sessionStorage.getItem('ks_admin') || '';
-}
-function setSession(user) {
-  sessionStorage.setItem('ks_admin', user);
-}
-function clearSession() {
-  sessionStorage.removeItem('ks_admin');
-}
-function showAdminApp() {
-  var login = document.getElementById('login-screen');
-  var appEl = document.getElementById('admin-app');
-  if (login) login.classList.remove('show');
-  if (appEl) appEl.classList.remove('locked');
-}
-function showLogin(signup) {
-  var login = document.getElementById('login-screen');
-  var appEl = document.getElementById('admin-app');
-  if (appEl) appEl.classList.add('locked');
-  if (login) login.classList.add('show');
-  var p2 = document.getElementById('login-pass2');
-  var hint = document.getElementById('login-hint');
-  var btn = document.getElementById('login-btn');
-  var tog = document.getElementById('toggle-signup');
-  if (signup) {
-    p2.style.display = '';
-    hint.textContent = 'إنشاء حساب مدير جديد';
-    btn.textContent = 'إنشاء الحساب والدخول';
-    tog.textContent = 'عندك حساب؟ دخول';
-    login.dataset.mode = 'signup';
-  } else {
-    p2.style.display = 'none';
-    hint.textContent = 'دخول المدير';
-    btn.textContent = 'دخول';
-    tog.textContent = 'مدير جديد؟ إنشاء حساب';
-    login.dataset.mode = 'login';
-  }
-}
-async function handleLogin() {
-  const user = (document.getElementById('login-user').value || '').trim();
-  const pass = document.getElementById('login-pass').value || '';
-  const pass2 = document.getElementById('login-pass2').value || '';
-  const mode = document.getElementById('login-screen').dataset.mode || 'login';
-  if (!user || user.length < 3) { alert('اكتب يوزر من 3 حروف على الأقل'); return; }
-  if (!pass || pass.length < 4) { alert('الباسوورد 4 حروف على الأقل'); return; }
-  const admins = getAdmins();
-  const hashed = await hashPass(pass);
-  if (mode === 'signup') {
-    if (pass !== pass2) { alert('تأكيد الباسوورد مش مطابق'); return; }
-    if (admins.find(a => a.user === user)) { alert('اليوزر موجود قبل كده'); return; }
-    admins.push({ user: user, pass: hashed, createdAt: new Date().toISOString() });
-    setAdmins(admins);
-    setSession(user);
-    showAdminApp();
-    alert('تم إنشاء حساب المدير: ' + user);
-    return;
-  }
-  const found = admins.find(a => a.user === user && a.pass === hashed);
-  if (!found) { alert('يوزر أو باسوورد غلط'); return; }
-  setSession(user);
-  showAdminApp();
-}
-async function addAdminUser() {
-  const user = (document.getElementById('new-admin-user').value || '').trim();
-  const pass = document.getElementById('new-admin-pass').value || '';
-  if (!user || user.length < 3 || !pass || pass.length < 4) {
-    alert('اكتب يوزر وباسوورد صح');
-    return;
-  }
-  const admins = getAdmins();
-  if (admins.find(a => a.user === user)) { alert('اليوزر موجود'); return; }
-  admins.push({ user: user, pass: await hashPass(pass), createdAt: new Date().toISOString() });
-  setAdmins(admins);
-  document.getElementById('new-admin-user').value = '';
-  document.getElementById('new-admin-pass').value = '';
-  renderAdminsList();
-  alert('تم إضافة المدير');
-}
-function renderAdminsList() {
-  const el = document.getElementById('admins-list');
-  if (!el) return;
-  const admins = getAdmins();
-  el.innerHTML = admins.length
-    ? ('المديرين: ' + admins.map(a => escapeHtml(a.user)).join('، '))
-    : 'لا يوجد مديرين بعد';
-}
-function logoutAdmin() {
-  clearSession();
-  showLogin(false);
-}
+    function approveOrder(order) {
+      const cards = DB.get('cards');
+      const card = cards.find(c => c.packageId === order.packageId && c.status === 'available');
 
-function wireAuth() {
-  const btn = document.getElementById('login-btn');
-  const tog = document.getElementById('toggle-signup');
-  if (btn) btn.addEventListener('click', handleLogin);
-  if (tog) tog.addEventListener('click', function () {
-    showLogin(document.getElementById('login-screen').dataset.mode !== 'signup');
-  });
-  document.querySelectorAll('.icon-btn.door').forEach(function (b) {
-    b.addEventListener('click', logoutAdmin);
-  });
-}
+      if (!card) {
+        alert('عذراً، انتهت الكروت لهذه الباقة. تواصل معنا.');
+        location.reload();
+        return;
+      }
 
-// ========== Init ==========
-(async function () {
-  try {
-    if (window.bootKartApi) await window.bootKartApi();
-    if (window.installApiBridge) window.installApiBridge(DB);
-  } catch (e) {}
-  try { initData(); } catch (e) { initData(); }
-  wireAuth();
-  if (currentAdmin()) showAdminApp();
-  else showLogin(getAdmins().length === 0);
-})();
+      // Mark card used
+      card.status = 'used';
+      card.soldAt = new Date().toISOString();
+      card.customer = order.phone;
+      DB.set('cards', cards);
+
+      // Add sale
+      const sales = DB.get('sales');
+      sales.push({
+        id: Date.now(),
+        packageId: order.packageId,
+        packageName: order.packageName,
+        price: order.price,
+        phone: order.phone,
+        name: order.name,
+        cardCode: card.code,
+        date: new Date().toLocaleString('ar-EG'),
+        type: 'auto',
+        wallet: order.walletName
+      });
+      DB.set('sales', sales);
+
+      // Update customer
+      let customers = DB.get('customers');
+      let cust = customers.find(c => c.phone === order.phone);
+      if (cust) {
+        cust.purchases = (cust.purchases || 0) + 1;
+        cust.name = order.name || cust.name;
+      } else {
+        customers.push({ phone: order.phone, name: order.name, purchases: 1 });
+      }
+      DB.set('customers', customers);
+
+      // Remove from pending
+      let pending = DB.get('pending');
+      pending = pending.filter(p => p.id !== order.id);
+      DB.set('pending', pending);
+
+      // Show success
+      revealCard(card.code, order.phone, order.packageName, order.price);
+    }
+
+    // Init
+    (async () => {
+      if (window.bootKartApi) await window.bootKartApi();
+      const fromApi = await loadFromApi();
+      if (!fromApi) ensureData();
+      renderPackages();
+      renderWallets();
+      var last = localStorage.getItem('ks_last_phone') || '';
+      if(last){
+        document.getElementById('customer-phone').value = last;
+        document.getElementById('lookup-phone').value = last;
+        showMyCards(last);
+      }
+      document.getElementById('lookup-btn').addEventListener('click', function(){
+        var ph = document.getElementById('lookup-phone').value.trim();
+        document.getElementById('customer-phone').value = ph;
+        showMyCards(ph);
+      });
+      var copyNew = document.getElementById('copy-card-btn');
+      if(copyNew) copyNew.addEventListener('click', function(){
+        copyNumber(document.getElementById('card-code').textContent);
+      });
+    })();
+  </script>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(regs) {
+        regs.forEach(function(r) { r.unregister(); });
+      });
+    }
+  </script>
+</body>
+</html>
