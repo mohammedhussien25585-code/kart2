@@ -362,25 +362,7 @@ function renderFeedCards() {
 
 // ----- Sales -----
 function renderSales() {
-  let sales = DB.get('sales') || [];
-  const packages = DB.get('packages') || [];
-  const used = (DB.get('cards') || []).filter(c => c.status === 'used');
-  if (used.length && sales.length < used.length) {
-    used.forEach(function (c) {
-      if (sales.some(function (s) { return s.cardCode === c.code; })) return;
-      var pkg = packages.find(function (p) { return Number(p.id) === Number(c.packageId); });
-      sales.push({
-        packageName: pkg ? pkg.name : ('باقة ' + c.packageId),
-        price: pkg ? pkg.price : 0,
-        phone: c.customer || '-',
-        date: c.soldAt ? new Date(c.soldAt).toLocaleString('ar-EG') : '-',
-        type: 'manual',
-        cardCode: c.code
-      });
-    });
-    DB.set('sales', sales);
-  }
-  sales = sales.slice().reverse();
+  const sales = DB.get('sales').slice().reverse();
   const total = sales.reduce((s, x) => s + (x.price || 0), 0);
 
   let rows = sales.slice(0, 100).map(s => `
