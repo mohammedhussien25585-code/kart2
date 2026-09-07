@@ -24,8 +24,8 @@
     <input type="text" id="login-user" placeholder="اسم المستخدم" autocomplete="username" value="star" />
     <input type="password" id="login-pass" placeholder="كلمة المرور" autocomplete="current-password" />
     <input type="password" id="login-pass2" placeholder="تأكيد كلمة المرور" style="display:none" />
-    <button class="btn" type="button" id="login-btn">دخول</button>
-    <button class="link" type="button" id="toggle-signup">مدير جديد؟ إنشاء حساب</button>
+    <button class="btn" type="button" id="login-btn" onclick="handleLogin()">دخول</button>
+    <button class="link" type="button" id="toggle-signup" onclick="showLogin(document.getElementById('login-screen').dataset.mode!=='signup')">مدير جديد؟ إنشاء حساب</button>
   </div>
   <div class="app locked" id="admin-app">
     <!-- Status Bar Simulation -->
