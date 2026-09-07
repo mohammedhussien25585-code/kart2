@@ -620,7 +620,8 @@ function renderArchive() {
                   <td dir="ltr">${escapeHtml(p.phone)}</td>
                   <td style="font-size:11px">${new Date(p.createdAt).toLocaleString('ar-EG')}</td>
                   <td>
-                    <button class="btn" style="padding:4px 10px;font-size:11px;background:#27ae60;color:#fff" onclick="confirmPending('${p.id}')">تأكيد يدوي</button>
+                    <button class="btn" style="padding:4px 10px;font-size:11px;background:#27ae60;color:#fff" onclick="confirmPending('${p.id}')">تأكيد</button>
+                    <button class="btn" style="padding:4px 10px;font-size:11px;background:#e74c3c;color:#fff;margin-right:4px" onclick="deletePending('${p.id}')">حذف</button>
                   </td>
                 </tr>
               `).join('')}
@@ -1087,6 +1088,12 @@ function startEditPackage(id) {
   window.scrollTo(0, 0);
 }
 
+async function deletePending(orderId) {
+  if (!confirm('حذف الطلب المعلق؟ الكارت مش هيتبعت')) return;
+  DB.set('pending', (DB.get('pending') || []).filter(function (p) { return String(p.id) !== String(orderId); }));
+  if (typeof updatePendingBadge === 'function') updatePendingBadge();
+  openPage('pending');
+}
 async function confirmPending(orderId) {
   if (window.USE_API && window.API_BASE !== undefined) {
     if (!confirm('تأكيد استلام التحويل وإرسال الكارت؟')) return;
@@ -1547,15 +1554,36 @@ function wireAuth() {
   startOrderWatch();
 })();
 
+function playOrderTone() {
+  try {
+    var Ctx = window.AudioContext || window.webkitAudioContext;
+    var ctx = playOrderTone.ctx || new Ctx();
+    playOrderTone.ctx = ctx;
+    if (ctx.state === 'suspended') ctx.resume();
+    function beep(start, freq, dur) {
+      var o = ctx.createOscillator();
+      var g = ctx.createGain();
+      o.type = 'sine';
+      o.frequency.value = freq;
+      g.gain.setValueAtTime(0.0001, ctx.currentTime + start);
+      g.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + start + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + start + dur);
+      o.connect(g); g.connect(ctx.destination);
+      o.start(ctx.currentTime + start);
+      o.stop(ctx.currentTime + start + dur + 0.02);
+    }
+    beep(0, 880, 0.16);
+    beep(0.18, 1174, 0.18);
+    beep(0.40, 988, 0.22);
+  } catch (e) {}
+}
 function notifyAdmin(title, body) {
   try {
     if (Notification.permission === 'granted') {
       new Notification(title, { body: body, tag: 'kart-order' });
     }
   } catch (e) {}
-  try {
-    var beep = new Audio('data:audio/wav;base64,UklGRl9vT1BFRiBJSFY=');
-  } catch (e) {}
+  playOrderTone();
   var box = document.getElementById('admin-toast');
   if (!box) {
     box = document.createElement('div');
@@ -1568,26 +1596,30 @@ function notifyAdmin(title, body) {
   setTimeout(function () { box.style.display = 'none'; }, 6000);
 }
 
+function updatePendingBadge() {
+  var n = (DB.get('pending') || []).length;
+  var btn = document.querySelector('.menu-item[data-page="pending"] span');
+  if (btn) btn.textContent = n ? ('الطلبات المعلقة (' + n + ')') : 'الطلبات المعلقة';
+}
 function startOrderWatch() {
   if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
     Notification.requestPermission();
   }
-  var last = (DB.get('pending') || []).length;
-  var lastIds = (DB.get('pending') || []).map(function (p) { return String(p.id); }).join(',');
+  var seen = {};
+  try { (JSON.parse(localStorage.getItem('ks_seen_pending') || '[]') || []).forEach(function (id) { seen[id] = 1; }); } catch (e) {}
+  updatePendingBadge();
   setInterval(async function () {
     if (window.pullCloud) await window.pullCloud();
     var pending = DB.get('pending') || [];
-    var ids = pending.map(function (p) { return String(p.id); }).join(',');
-    if (pending.length > last || (ids && ids !== lastIds && pending.length)) {
-      var newest = pending[pending.length - 1] || pending[0];
-      if (newest) {
-        notifyAdmin('طلب كارت جديد', (newest.packageName || '') + ' ' + (newest.price || '') + ' ج من ' + (newest.phone || ''));
-        updateStats();
-      }
-    }
-    last = pending.length;
-    lastIds = ids;
-  }, 4000);
+    updatePendingBadge();
+    pending.forEach(function (p) {
+      var id = String(p.id);
+      if (seen[id]) return;
+      seen[id] = 1;
+      notifyAdmin('طلب معلق جديد', (p.packageName || 'باقة') + ' — ' + (p.price || '') + ' ج من ' + (p.phone || ''));
+    });
+    localStorage.setItem('ks_seen_pending', JSON.stringify(Object.keys(seen)));
+  }, 3000);
 }
 
 window.startEditPackage = startEditPackage;
@@ -1597,4 +1629,5 @@ window.confirmPending = confirmPending;
 window.approvePayment = approvePayment;
 window.deleteCard = deleteCard;
 window.deleteMessage = deleteMessage;
+window.deletePending = deletePending;
 window.approvePayment = approvePayment;
