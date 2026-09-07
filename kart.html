@@ -54,6 +54,7 @@ body {
   display: none !important;
 }
 .app.locked { display: none !important; }
+.app:not(.ready):not(.locked) { opacity: 0; }
 .login-screen {
   width: 100%;
   max-width: 420px;
@@ -2171,7 +2172,8 @@ function showAdminApp() {
   var appEl = document.getElementById('admin-app');
   document.documentElement.classList.add('authed');
   if (login) login.classList.remove('show');
-  if (appEl) appEl.classList.remove('locked');
+  if (appEl) { appEl.classList.remove('locked'); appEl.classList.add('ready'); }
+  if (typeof updateStats === 'function') updateStats();
 }
 function showLogin(signup) {
   var login = document.getElementById('login-screen');
