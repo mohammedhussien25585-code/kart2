@@ -1544,7 +1544,51 @@ function wireAuth() {
   } catch (e) {}
   try { initData(); } catch (e) { initData(); }
   if (currentAdmin()) showAdminApp();
+  startOrderWatch();
 })();
+
+function notifyAdmin(title, body) {
+  try {
+    if (Notification.permission === 'granted') {
+      new Notification(title, { body: body, tag: 'kart-order' });
+    }
+  } catch (e) {}
+  try {
+    var beep = new Audio('data:audio/wav;base64,UklGRl9vT1BFRiBJSFY=');
+  } catch (e) {}
+  var box = document.getElementById('admin-toast');
+  if (!box) {
+    box = document.createElement('div');
+    box.id = 'admin-toast';
+    box.style.cssText = 'position:fixed;top:12px;left:12px;right:12px;z-index:99;background:#111;color:#f5a623;padding:12px 14px;border-radius:12px;font-weight:700;display:none';
+    document.body.appendChild(box);
+  }
+  box.textContent = title + ' — ' + body;
+  box.style.display = 'block';
+  setTimeout(function () { box.style.display = 'none'; }, 6000);
+}
+
+function startOrderWatch() {
+  if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+  var last = (DB.get('pending') || []).length;
+  var lastIds = (DB.get('pending') || []).map(function (p) { return String(p.id); }).join(',');
+  setInterval(async function () {
+    if (window.pullCloud) await window.pullCloud();
+    var pending = DB.get('pending') || [];
+    var ids = pending.map(function (p) { return String(p.id); }).join(',');
+    if (pending.length > last || (ids && ids !== lastIds && pending.length)) {
+      var newest = pending[pending.length - 1] || pending[0];
+      if (newest) {
+        notifyAdmin('طلب كارت جديد', (newest.packageName || '') + ' ' + (newest.price || '') + ' ج من ' + (newest.phone || ''));
+        updateStats();
+      }
+    }
+    last = pending.length;
+    lastIds = ids;
+  }, 4000);
+}
 
 window.startEditPackage = startEditPackage;
 window.togglePackage = togglePackage;
