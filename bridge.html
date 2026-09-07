@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>جسر تجريبي</title>
+  <style>
+    body { font-family: Tahoma, Arial, sans-serif; background:#111; color:#fff; margin:0; }
+    .box { max-width:420px; margin:0 auto; padding:20px; }
+    h1 { font-size:22px; margin:8px 0; text-align:center; }
+    p { color:#bbb; font-size:14px; line-height:1.7; }
+    input, textarea { width:100%; padding:12px; border:0; border-radius:10px; margin:6px 0 12px; box-sizing:border-box; font-size:15px; font-family:inherit; }
+    button { width:100%; padding:13px; border:0; border-radius:10px; background:#f5a623; color:#111; font-weight:800; font-size:16px; margin-bottom:8px; }
+    .out { background:#1b1b1b; padding:12px; border-radius:10px; min-height:80px; font-size:13px; white-space:pre-wrap; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>جسر تجريبي</h1>
+    <p>الصق رسالة فودافون كاش هنا. لو في طلب بنفس المبلغ، الكارت يتأكد.</p>
+    <label>نص رسالة التحويل</label>
+    <textarea id="body" rows="5" placeholder="تم استلام مبلغ 120 جنيه من محفظة..."></textarea>
+    <label>أو اكتب المبلغ مباشرة</label>
+    <input id="amount" type="number" placeholder="120" />
+    <button id="go">قراءة الرسالة وتأكيد الطلب</button>
+    <div class="out" id="out">في انتظار رسالة...</div>
+  </div>
+  <script>
+    function get(k, d){ try { var v=JSON.parse(localStorage.getItem('ks_'+k)); return v==null?d:v; } catch(e){ return d; } }
+    function set(k,v){ localStorage.setItem('ks_'+k, JSON.stringify(v)); }
+    function parseAmount(text){
+      var n = document.getElementById('amount').value;
+      if (n) return parseFloat(n);
+      var m = String(text||'').replace(/,/g,'').match(/(\d+(?:\.\d+)?)\s*(جنيه|ج\.م|EGP|ج)/i);
+      if (m) return parseFloat(m[1]);
+      m = String(text||'').match(/(?:مبلغ|استلام|تحويل)\s*(\d+)/);
+      return m ? parseFloat(m[1]) : null;
+    }
+    document.getElementById('go').onclick = function(){
+      var body = document.getElementById('body').value.trim();
+      var amount = parseAmount(body);
+      var out = document.getElementById('out');
+      if (!amount) { out.textContent = 'المبلغ مش واضح. اكتبه فوق.'; return; }
+      var msgs = get('messages', []);
+      msgs.unshift({ id: Date.now(), body: body || ('تحويل '+amount+' جنيه'), amount: amount, matched: false, receivedAt: new Date().toISOString() });
+      var pending = get('pending', []);
+      var order = pending.filter(function(o){ return Number(o.price)===Number(amount); }).sort(function(a,b){ return new Date(a.createdAt)-new Date(b.createdAt); })[0];
+      if (!order) {
+        set('messages', msgs.slice(0,100));
+        out.textContent = 'وصلت رسالة بمبلغ '+amount+' ج\nمفيش طلب معلق بنفس المبلغ على الجهاز ده.';
+        return;
+      }
+      var cards = get('cards', []);
+      var card = cards.find(function(c){ return Number(c.packageId)===Number(order.packageId) && c.status==='available'; });
+      if (!card) { out.textContent = 'مفيش كارت متاح للباقة.'; return; }
+      card.status = 'used'; card.soldAt = new Date().toISOString(); card.customer = order.phone;
+      set('cards', cards);
+      var sales = get('sales', []);
+      sales.push({ id: Date.now(), orderId: order.id, packageId: order.packageId, packageName: order.packageName, price: order.price, phone: order.phone, cardCode: card.code, date: new Date().toLocaleString('ar-EG'), type: 'sms-demo' });
+      set('sales', sales);
+      set('pending', pending.filter(function(p){ return String(p.id)!==String(order.id); }));
+      msgs[0].matched = true;
+      set('messages', msgs.slice(0,100));
+      var mine = [];
+      try { mine = JSON.parse(localStorage.getItem('ks_mycards_'+order.phone)||'[]'); } catch(e){}
+      if (!mine.some(function(x){ return x.code===card.code; })) {
+        mine.unshift({ code: card.code, phone: order.phone, packageName: order.packageName, price: order.price, date: new Date().toLocaleString('ar-EG') });
+        localStorage.setItem('ks_mycards_'+order.phone, JSON.stringify(mine));
+      }
+      out.textContent = 'تم التأكيد\nالمبلغ: '+amount+' ج\nالكارت: '+card.code+'\nللرقم: '+order.phone;
+    };
+  </script>
+</body>
+</html>
