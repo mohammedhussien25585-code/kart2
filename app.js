@@ -726,8 +726,11 @@ function renderSettings() {
         <input type="text" id="set-whatsapp" value="${escapeHtml(settings.whatsappToken || '')}" placeholder="WhatsApp Token" dir="ltr" style="text-align:left" />
       </div>
       <button class="btn btn-primary" id="save-settings">💾 حفظ الإعدادات</button>
-      <p style="font-size:13px;color:#555;margin-top:12px;line-height:1.8">ابعث للعميل الرابط ده عشان يرتبط بحسابك:<br>
-      <b dir="ltr" id="admin-share-link" style="color:#0a7;word-break:break-all"></b></p>
+      <div style="margin-top:14px;padding:12px;background:#f6f6f6;border-radius:10px">
+        <div style="font-size:13px;font-weight:700;margin-bottom:6px">رابط العملاء المرتبطين</div>
+        <div dir="ltr" id="admin-share-link" style="color:#0a7;word-break:break-all;font-size:13px">https://mohammedhussien25585-code.github.io/kart2/customer.html?admin=01023545726</div>
+        <button type="button" class="btn" id="copy-admin-link" style="margin-top:8px;background:#111;color:#fff">نسخ رابط العملاء</button>
+      </div>
     </div>
     <div class="form-card">
       <h3 style="font-size:14px;margin-bottom:10px">إضافة مدير جديد</h3>
@@ -885,7 +888,12 @@ function attachPageEvents(page) {
     bindClick('add-admin-btn', addAdminUser);
     var sl=document.getElementById('admin-share-link');
     var phone=(DB.get('settings',{})||{}).phone||'01023545726';
-    if(sl) sl.textContent = location.origin + location.pathname.replace(/index\.html$/,'') + 'customer.html?admin=' + phone;
+    var link='https://mohammedhussien25585-code.github.io/kart2/customer.html?admin=' + phone;
+    if(sl) sl.textContent = link;
+    bindClick('copy-admin-link', function(){
+      if(navigator.clipboard) navigator.clipboard.writeText(link);
+      alert('تم نسخ الرابط:\n' + link);
+    });
     renderAdminsList();
   }
   if (page === 'backup') {
