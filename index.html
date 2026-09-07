@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>كرت شبكة</title>
   <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
 
   <link rel="manifest" href="manifest.json" />
@@ -16,7 +17,28 @@
   <meta name="mobile-web-app-capable" content="yes" />
 </head>
 <body>
-  <div class="app">
+  <div class="login-screen show" id="login-screen">
+    <div style="text-align:center;font-size:42px">🦅</div>
+    <h1>كرت شبكة</h1>
+    <p id="login-hint">دخول المدير</p>
+    <input type="text" id="login-user" placeholder="اسم المستخدم" autocomplete="username" value="star" />
+    <input type="password" id="login-pass" placeholder="كلمة المرور" autocomplete="current-password" />
+    <input type="password" id="login-pass2" placeholder="تأكيد كلمة المرور" style="display:none" />
+    <button class="btn" type="button" id="login-btn">دخول</button>
+    <button class="link" type="button" id="toggle-signup">مدير جديد؟ إنشاء حساب</button>
+  </div>
+  <div class="app locked" id="admin-app">
+    <!-- Status Bar Simulation -->
+    <div class="status-bar">
+      <span class="time">7:45</span>
+      <div class="status-icons">
+        <span>📶</span>
+        <span>📡</span>
+        <span>🔋 98%</span>
+      </div>
+    </div>
+
+    <!-- Header -->
     <header class="header">
       <div class="header-left">
         <button class="icon-btn door">🚪</button>
@@ -101,6 +123,23 @@
         <span>نقاط البيع والبقالات</span>
       </button>
 
+      <button class="menu-item" data-page="sms-device">
+        <div class="menu-icon">📱</div>
+        <span>رمز جهاز الفحص</span>
+      </button>
+      <button class="menu-item" data-page="payment-review">
+        <div class="menu-icon">✅</div>
+        <span>مراجعة التحويلات</span>
+      </button>
+      <button class="menu-item" data-page="sms-bridge">
+        <div class="menu-icon">📡</div>
+        <span>جسر الرسائل</span>
+      </button>
+      <button class="menu-item" data-page="pending">
+        <div class="menu-icon">⏳</div>
+        <span>الطلبات المعلقة</span>
+      </button>
+
       <button class="menu-item full" data-page="backup">
         <div class="menu-icon disk">💾</div>
         <span>نسخ احتياطي</span>
@@ -109,10 +148,13 @@
 
     <!-- Footer -->
     <footer class="footer">
-      <div class="footer-contact">للتواصل: 01023545726</div>
-      <a href="customer.html" style="color:#f5a623;font-size:13px;font-weight:700;text-decoration:none;display:inline-block;margin-top:6px">
-        🛒 فتح صفحة العميل
-      </a>
+      <div class="footer-text">كرت شبكة 2025 © - جميع الحقوق محفوظة</div>
+      <div class="footer-contact">للتواصل: 773779585</div>
+      <div style="margin-top:10px">
+        <a href="customer.html" target="_blank" style="color:#f5a623;font-size:13px;font-weight:700;text-decoration:none">
+          🛒 فتح صفحة العميل
+        </a>
+      </div>
     </footer>
   </div>
 
@@ -126,13 +168,11 @@
   </div>
 
   <script src="config.js"></script>
+  <script src="api.js"></script>
   <script src="app.js"></script>
-
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js').then(() => {
-        console.log('PWA Service Worker registered');
-      }).catch(console.error);
+      navigator.serviceWorker.register('./sw.js').catch(function(){});
     }
   </script>
 </body>
