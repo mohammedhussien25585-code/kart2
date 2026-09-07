@@ -640,10 +640,37 @@ function renderArchive() {
     </tr>
   `).join('');
 
+  const packages = DB.get('packages') || [];
+  const pkgName = function (id) {
+    var p = packages.find(function (x) { return Number(x.id) === Number(id); });
+    return p ? p.name : ('فئة ' + id);
+  };
+  const allCards = (DB.get('cards') || []).slice().sort(function (a, b) {
+    if ((a.status === 'used') !== (b.status === 'used')) return a.status === 'used' ? -1 : 1;
+    return String(b.soldAt || '').localeCompare(String(a.soldAt || ''));
+  });
+  const cardRows = allCards.map(function (c) {
+    const sold = c.status === 'used';
+    return '<tr style="' + (sold ? 'background:#fdecea;color:#c0392b;font-weight:700' : '') + '">' +
+      '<td dir="ltr">' + escapeHtml(c.code) + '</td>' +
+      '<td>' + escapeHtml(pkgName(c.packageId)) + '</td>' +
+      '<td>' + (sold ? 'مباع' : (c.status === 'offer' ? 'عرض' : 'متاح')) + '</td>' +
+      '<td dir="ltr">' + escapeHtml(c.customer || '-') + '</td>' +
+      '<td style="font-size:11px">' + (c.soldAt ? new Date(c.soldAt).toLocaleString('ar-EG') : '-') + '</td>' +
+      '</tr>';
+  }).join('');
+
   return `
     ${pendingHtml || '<div class="form-card"><p style="font-size:14px;color:#666;text-align:center;padding:20px 8px">لا توجد طلبات معلقة.<br>لما العميل يطلب، الطلب هيظهر هنا وتأكد بمزرار واحد.</p></div>'}
     <div class="form-card">
-      <p style="font-size:13px;color:#666;line-height:1.8">شوف تحويل فودافون عندك، وبعدين اضغط <b>تأكيد يدوي</b> على الطلب. الكارت يتثبت في كروتي عند العميل.</p>
+      <h3 style="font-size:15px;margin-bottom:10px">أرشيف الكروت (${allCards.length})</h3>
+      <p style="font-size:12px;color:#888;margin-bottom:10px">المباع بالأحمر — الفئة جنب الكود</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>الكود</th><th>الفئة</th><th>الحالة</th><th>العميل</th><th>التاريخ</th></tr></thead>
+          <tbody>${cardRows || '<tr><td colspan="5" style="text-align:center;padding:20px">لا توجد كروت</td></tr>'}</tbody>
+        </table>
+      </div>
     </div>
   `;
 }
@@ -1080,12 +1107,18 @@ function addCodes(text, packageId) {
 
 function startEditPackage(id) {
   const p = DB.get('packages').find(x => Number(x.id) === Number(id));
-  if (!p) return;
-  document.getElementById('new-pkg-name').value = p.name;
-  document.getElementById('new-pkg-price').value = p.price;
-  document.getElementById('edit-pkg-id').value = p.id;
-  document.getElementById('add-package-btn').textContent = 'حفظ التعديل';
+  if (!p) { alert('الباقة مش موجودة'); return; }
+  var n = document.getElementById('new-pkg-name');
+  var pr = document.getElementById('new-pkg-price');
+  var eid = document.getElementById('edit-pkg-id');
+  var btn = document.getElementById('add-package-btn');
+  if (!n || !pr || !eid || !btn) { alert('افتح صفحة الباقات'); return; }
+  n.value = p.name;
+  pr.value = p.price;
+  eid.value = p.id;
+  btn.textContent = 'حفظ التعديل';
   window.scrollTo(0, 0);
+  n.focus();
 }
 
 async function deletePending(orderId) {
@@ -1622,6 +1655,15 @@ function startOrderWatch() {
   }, 3000);
 }
 
+document.addEventListener('click', function (e) {
+  var btn = e.target.closest ? e.target.closest('.js-act') : null;
+  if (!btn) return;
+  var act = btn.getAttribute('data-act');
+  var id = btn.getAttribute('data-id');
+  if (act === 'edit-pkg') startEditPackage(id);
+  if (act === 'toggle-pkg') togglePackage(id);
+  if (act === 'del-pkg') deletePackage(id);
+});
 window.startEditPackage = startEditPackage;
 window.togglePackage = togglePackage;
 window.deletePackage = deletePackage;
