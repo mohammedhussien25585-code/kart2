@@ -524,6 +524,7 @@
     </div>
     <div class="bottom-nav">
       <button type="button" class="on" id="nav-shop">🛒 شراء</button>
+      <button type="button" id="nav-offers">🎁 العروض</button>
       <button type="button" id="nav-cards">🎫 كروتي</button>
     </div>
   </div>
@@ -536,6 +537,14 @@
       <div id="my-cards-list"></div>
       <button type="button" class="btn btn-primary" id="cards-back" style="margin-top:16px">رجوع للشراء</button>
     </div>
+  </div>
+  <div class="cards-page" id="offers-page">
+    <div class="cards-top">
+      <h2>العروض</h2>
+      <p>عروض المدير للعملاء فقط</p>
+    </div>
+    <div class="cards-wrap" id="offers-list"></div>
+    <div class="cards-wrap"><button type="button" class="btn btn-primary" id="offers-back">رجوع للشراء</button></div>
   </div>
 
   <script>
@@ -896,6 +905,34 @@
 
 
 
+
+    function renderCustomerOffers(){
+      var box=document.getElementById('offers-list');
+      if(!box) return;
+      var offers=[];
+      try{ offers=JSON.parse(localStorage.getItem('ks_offers')||'[]')||[]; }catch(e){}
+      if(!offers.length){
+        box.innerHTML='<div class="my-card-item"><div class="meta">لا توجد عروض حالياً</div></div>';
+        return;
+      }
+      box.innerHTML=offers.map(function(o){
+        return '<div class="my-card-item"><div class="code" style="font-size:16px;letter-spacing:0">'+escapeHtml(o.title||'عرض')+'</div><div class="meta">'+(o.desc?escapeHtml(o.desc):'')+'</div></div>';
+      }).join('');
+    }
+    function openOffersPage(){
+      if(window.pullCloud) window.pullCloud();
+      renderCustomerOffers();
+      document.getElementById('offers-page').classList.add('show');
+      document.getElementById('cards-page').classList.remove('show');
+      document.getElementById('nav-offers').classList.add('on');
+      document.getElementById('nav-shop').classList.remove('on');
+      document.getElementById('nav-cards').classList.remove('on');
+    }
+    function closeOffersPage(){
+      document.getElementById('offers-page').classList.remove('show');
+      document.getElementById('nav-shop').classList.add('on');
+      document.getElementById('nav-offers').classList.remove('on');
+    }
     function openCardsPage(){
       var phone = custSession() || (document.getElementById('customer-phone')&&document.getElementById('customer-phone').value) || '';
       showMyCards(phone);
@@ -908,8 +945,12 @@
     }
     function closeCardsPage(){
       document.getElementById('cards-page').classList.remove('show');
+      var op=document.getElementById('offers-page');
+      if(op) op.classList.remove('show');
       document.getElementById('nav-shop').classList.add('on');
       document.getElementById('nav-cards').classList.remove('on');
+      var no=document.getElementById('nav-offers');
+      if(no) no.classList.remove('on');
     }
     function chash(s){ try { return btoa(unescape(encodeURIComponent('c|'+s))); } catch(e){ return 'c|'+s; } }
     function cusers(){ try { return JSON.parse(localStorage.getItem('ks_cusers')||'[]'); } catch(e){ return []; } }
@@ -986,6 +1027,8 @@
         showMyCards(ph);
       });
       document.getElementById('nav-cards').addEventListener('click', openCardsPage);
+      document.getElementById('nav-offers').addEventListener('click', openOffersPage);
+      document.getElementById('offers-back').addEventListener('click', closeOffersPage);
       document.getElementById('nav-shop').addEventListener('click', closeCardsPage);
       document.getElementById('cards-back').addEventListener('click', closeCardsPage);
       var gca=document.getElementById('go-cards-after');
