@@ -502,6 +502,9 @@ tr:last-child td {
   margin-top: 2px;
 }
 
+.stats{visibility:hidden}
+.stats.ready{visibility:visible}
+
 </style>
 <script>window.API_BASE=window.API_BASE||"";</script>
 <script>
@@ -650,6 +653,16 @@ const DB = {
 
 // Initialize default data
 function initData() {
+  if (!localStorage.getItem('ks_clean_fake_stock')) {
+    var cards = DB.get('cards') || [];
+    var usedReal = cards.filter(function(c){ return c.status==='used' && c.customer; });
+    var avail = cards.filter(function(c){ return c.status==='available'; }).length;
+    if (cards.length >= 100 && avail >= 100) {
+      DB.set('cards', usedReal);
+    }
+    localStorage.setItem('ks_clean_fake_stock', '1');
+  }
+
   if (!localStorage.getItem('ks_initialized')) {
     DB.set('packages', [
       { id: 1, name: 'باقة 100 جيجا', price: 120, active: true },
@@ -658,7 +671,7 @@ function initData() {
       { id: 4, name: 'باقة مكالمات', price: 50, active: true },
       { id: 5, name: 'باقة سوشيال', price: 40, active: true },
     ]);
-    DB.set('cards', generateCards(142));
+    DB.set('cards', []);
     DB.set('sales', []);
     DB.set('customers', []);
     DB.set('wallets', [
@@ -703,6 +716,8 @@ function updateStats() {
     nums[2].textContent = available;
     nums[3].textContent = packages.length;
   }
+  var sec = document.querySelector('.stats');
+  if (sec) sec.classList.add('ready');
 }
 
 // ========== Navigation ==========
@@ -2425,7 +2440,7 @@ window.approvePayment = approvePayment;
       </div>
       <div class="stat-card">
         <div class="stat-icon packages">🔑</div>
-        <div class="stat-number">5</div>
+        <div class="stat-number">0</div>
         <div class="stat-label">باقات</div>
       </div>
     </section>
