@@ -54,7 +54,7 @@ body {
   display: none !important;
 }
 .app.locked { display: none !important; }
-.app:not(.ready):not(.locked) { opacity: 0; }
+
 .login-screen {
   width: 100%;
   max-width: 420px;
@@ -502,10 +502,189 @@ tr:last-child td {
   margin-top: 2px;
 }
 
-.stats{visibility:hidden}
-.stats.ready{visibility:visible}
+
+/* Native-like panels */
+.page-header {
+  background: #1b2a38 !important;
+  border-radius: 0 0 12px 12px;
+}
+.back-btn {
+  background: #2c3e50 !important;
+  color: #fff !important;
+  border-radius: 20px !important;
+  padding: 6px 14px !important;
+  font-size: 13px !important;
+}
+.pill-row { display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
+.pill { flex:1; min-width:70px; border:0; border-radius:18px; padding:8px 6px; background:#fff; color:#333; font-family:inherit; font-size:12px; }
+.pill.on { background:#1b2a38; color:#fff; }
+.bar-title {
+  background:#fff; border-radius:18px; padding:10px 14px; display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:10px; font-weight:800;
+}
+.plus { width:28px;height:28px;border-radius:50%;background:#27ae60;color:#fff;border:0;font-size:20px;line-height:28px; }
+.colhead { background:#1b2a38; color:#fff; border-radius:12px; padding:8px 6px; font-size:11px; display:grid; grid-template-columns:1fr 1fr 1fr 1fr 1fr; text-align:center; margin-bottom:8px; }
+.empty-flag { text-align:center; color:#888; padding:18px 8px; background:#fff; border-radius:14px; }
+.wallet-row { background:#fff; border-radius:12px; padding:10px; display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+.tog { border:0; border-radius:16px; padding:6px 12px; color:#fff; font-family:inherit; }
+.tog.on { background:#27ae60; }
+.tog.off { background:#e74c3c; }
+.foot-dark { background:#111; color:#fff; text-align:center; padding:10px; border-radius:10px; font-size:11px; margin-top:16px; }
 
 </style>
+</head>
+<body>
+  <div class="login-screen" id="login-screen">
+    <div style="text-align:center;font-size:42px">🦅</div>
+    <h1>كرت شبكة</h1>
+    <p id="login-hint">دخول المدير</p>
+    <input type="text" id="login-user" placeholder="اسم المستخدم" autocomplete="username" value="star" />
+    <input type="password" id="login-pass" placeholder="كلمة المرور" autocomplete="current-password" />
+    <input type="password" id="login-pass2" placeholder="تأكيد كلمة المرور" style="display:none" />
+    <button class="btn" type="button" id="login-btn" onclick="handleLogin()">دخول</button>
+    <button class="link" type="button" id="toggle-signup" onclick="showLogin(document.getElementById('login-screen').dataset.mode!=='signup')">مدير جديد؟ إنشاء حساب</button>
+  </div>
+  <div class="app locked" id="admin-app">
+    <div class="status-bar">
+      <span class="brand-mark">⭐ STAR-WiFi</span>
+    </div>
+
+    <!-- Header -->
+    <header class="header">
+      <div class="header-left">
+        <button class="icon-btn door">🚪</button>
+      </div>
+      <div class="logo">
+        <div class="logo-circle">
+          <span class="eagle">🦅</span>
+        </div>
+        <span class="logo-text">كرت شبكة</span>
+      </div>
+      <div class="header-right"></div>
+    </header>
+
+    <!-- Stats Cards -->
+    <section class="stats">
+      <div class="stat-card">
+        <div class="stat-icon gift">🎁</div>
+        <div class="stat-number" id="stat-offers">0</div>
+        <div class="stat-label">كروت العروض</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon used">📤</div>
+        <div class="stat-number" id="stat-used">0</div>
+        <div class="stat-label">كروت مستخدمة</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon available">📥</div>
+        <div class="stat-number" id="stat-available">0</div>
+        <div class="stat-label">كروت متاحه</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon packages">🔑</div>
+        <div class="stat-number" id="stat-packages">0</div>
+        <div class="stat-label">باقات</div>
+      </div>
+    </section>
+
+    <!-- Menu Grid -->
+    <section class="menu-grid">
+      <button class="menu-item" data-page="feed-cards">
+        <div class="menu-icon box">📦</div>
+        <span>تغذية كروت الباقات</span>
+      </button>
+      <button class="menu-item" data-page="packages">
+        <div class="menu-icon key">🔑</div>
+        <span>باقات الكروت</span>
+      </button>
+
+      <button class="menu-item" data-page="archive">
+        <div class="menu-icon clipboard">📋</div>
+        <span>أرشيف الرسائل والكروت</span>
+      </button>
+      <button class="menu-item" data-page="offers">
+        <div class="menu-icon gift-box">🎁</div>
+        <span>عروض الباقات</span>
+      </button>
+
+      <button class="menu-item" data-page="wallets">
+        <div class="menu-icon user">👤</div>
+        <span>حسابات المحافظ والبنوك</span>
+      </button>
+      <button class="menu-item" data-page="sales">
+        <div class="menu-icon chart">📊</div>
+        <span>مبيعات الكروت</span>
+      </button>
+
+      <button class="menu-item" data-page="customers">
+        <div class="menu-icon users">👥</div>
+        <span>العملاء</span>
+      </button>
+      <button class="menu-item active" data-page="manual-send">
+        <div class="menu-icon send">📤</div>
+        <span>إرسال يدوي</span>
+      </button>
+
+      <button class="menu-item" data-page="settings">
+        <div class="menu-icon gear">⚙️</div>
+        <span>الإعدادات</span>
+      </button>
+      <button class="menu-item" data-page="pos">
+        <div class="menu-icon store">🏪</div>
+        <span>نقاط البيع والبقالات</span>
+      </button>
+
+      <button class="menu-item" data-page="sms-device">
+        <div class="menu-icon">📱</div>
+        <span>رمز جهاز الفحص</span>
+      </button>
+      <button class="menu-item" data-page="payment-review">
+        <div class="menu-icon">✅</div>
+        <span>مراجعة التحويلات</span>
+      </button>
+      <button class="menu-item" data-page="sms-bridge">
+        <div class="menu-icon">📡</div>
+        <span>جسر الرسائل</span>
+      </button>
+      <button class="menu-item" data-page="pending">
+        <div class="menu-icon">⏳</div>
+        <span>الطلبات المعلقة</span>
+      </button>
+
+      <button class="menu-item full" data-page="backup">
+        <div class="menu-icon disk">💾</div>
+        <span>نسخ احتياطي</span>
+      </button>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="footer-contact">للتواصل: 01023545726</div>
+      <div style="margin-top:10px">
+        <a href="customer.html" target="_blank" style="color:#f5a623;font-size:13px;font-weight:700;text-decoration:none">
+          🛒 فتح صفحة العميل
+        </a>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Pages Container (Hidden by default) -->
+  <div id="page-container" class="page-container hidden">
+    <div class="page-header">
+      <button class="back-btn" id="back-btn">→ رجوع</button>
+      <h2 id="page-title">العنوان</h2>
+    </div>
+    <div id="page-content" class="page-content"></div>
+  </div>
+
+  
+  
+  
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').catch(function(){});
+    }
+  </script>
 <script>window.API_BASE="";</script>
 <script>
 (function () {
@@ -716,12 +895,17 @@ function updateStats() {
   const used = cards.filter(c => c.status === 'used').length;
   const offers = cards.filter(c => c.status === 'offer').length;
 
+  function setStat(id, val){ var el=document.getElementById(id); if(el) el.textContent=val; }
+  setStat('stat-offers', offers);
+  setStat('stat-used', used);
+  setStat('stat-available', available);
+  setStat('stat-packages', (packages||[]).length);
   const nums = document.querySelectorAll('.stat-number');
-  if (nums.length >= 4) {
+  if (!document.getElementById('stat-offers') && nums.length >= 4) {
     nums[0].textContent = offers;
     nums[1].textContent = used;
     nums[2].textContent = available;
-    nums[3].textContent = packages.length;
+    nums[3].textContent = (packages||[]).length;
   }
   var sec = document.querySelector('.stats');
   if (sec) sec.classList.add('ready');
@@ -769,7 +953,7 @@ document.querySelectorAll('.stat-card').forEach((card, index) => {
   });
 });
 
-document.getElementById('back-btn').addEventListener('click', closePage);
+var _bk=document.getElementById('back-btn'); if(_bk) _bk.addEventListener('click', closePage);
 
 window.addEventListener('popstate', function () {
   closePage();
@@ -864,7 +1048,25 @@ function renderCardsList(status) {
     </tr>
   `).join('');
 
+  let addOfferHtml = '';
+  if (status === 'offer') {
+    addOfferHtml = `
+    <div class="form-card">
+      <h3 style="font-size:15px;margin-bottom:10px">إضافة كارت عرض</h3>
+      <div class="form-group">
+        <label>الباقة</label>
+        <select id="offer-pkg">${packages.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('')}</select>
+      </div>
+      <div class="form-group">
+        <label>كود الكارت</label>
+        <textarea id="offer-codes" rows="4" placeholder="كود في كل سطر"></textarea>
+      </div>
+      <button type="button" class="btn btn-primary" id="add-offer-cards-btn">+ إضافة لكروت العروض</button>
+    </div>`;
+  }
+
   return `
+    ${addOfferHtml}
     ${filterHtml}
     <div class="mini-stats">
       <div class="mini-stat">
@@ -955,35 +1157,23 @@ function renderPackages() {
   }).join('');
 
   return `
+    <div class="bar-title"><span>🔑 باقات الكروت</span><button type="button" class="plus" id="focus-add-pkg">+</button></div>
     <div class="form-card">
       <div class="form-group">
-        <label>اسم الباقة الجديدة</label>
+        <label>اسم الباقة</label>
         <input type="text" id="new-pkg-name" placeholder="مثال: باقة 200 جيجا" />
       </div>
       <div class="form-group">
-        <label>السعر (جنيه)</label>
+        <label>السعر</label>
         <input type="number" id="new-pkg-price" placeholder="100" />
       </div>
       <button class="btn btn-primary" id="add-package-btn">+ إضافة باقة</button>
       <input type="hidden" id="edit-pkg-id" value="" />
     </div>
-    <div class="form-card">
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>اسم الباقة</th>
-              <th>السعر</th>
-              <th>متاح</th>
-              <th>مباع</th>
-              <th>الحالة</th>
-              <th>إجراءات</th>
-            </tr>
-          </thead>
-          <tbody>${rows || '<tr><td colspan="6" style="text-align:center">لا توجد باقات</td></tr>'}</tbody>
-        </table>
-      </div>
-    </div>
+    <div class="colhead"><span>الباقة</span><span>متاح</span><span>مستخدم</span><span>حالة</span><span>وصف</span></div>
+    ${rows ? `<div class="form-card" style="padding:0;overflow:auto"><table>${''}<tbody>${rows}</tbody></table></div>` : '<div class="empty-flag">لا توجد بيانات</div>'}
+    <div class="empty-flag">إجمالي باقات الكروت: ${packages.length}</div>
+    <div class="foot-dark">© 2025 كرت شبكة</div>
   `;
 }
 
@@ -1058,6 +1248,12 @@ function renderSales() {
   `).join('');
 
   return `
+    <div class="pill-row">
+      <button type="button" class="pill on">اليوم</button>
+      <button type="button" class="pill">الاسبوع</button>
+      <button type="button" class="pill">الشهر</button>
+      <button type="button" class="pill">مخصص</button>
+    </div>
     <div class="mini-stats">
       <div class="mini-stat">
         <div class="num">${sales.length}</div>
@@ -1634,6 +1830,7 @@ function attachPageEvents(page) {
     bindClick('reset-btn', doReset);
   }
   if (page === 'available-cards' || page === 'used-cards' || page === 'offer-cards') {
+    bindClick('add-offer-cards-btn', addOfferCards);
     var filter = document.getElementById('cards-filter');
     if (filter) {
       filter.addEventListener('change', function() {
@@ -1830,6 +2027,30 @@ function addCodes(text, packageId) {
   DB.set('cards', cards);
   updateStats();
   alert(`✅ تم إضافة ${added} كارت\n${skipped > 0 ? '⏭️ تم تخطي ' + skipped + ' مكرر' : ''}`);
+}
+
+function addOfferCards() {
+  var pkg = parseInt((document.getElementById('offer-pkg') || {}).value, 10);
+  var text = ((document.getElementById('offer-codes') || {}).value || '').trim();
+  if (!pkg) { alert('اختار الباقة'); return; }
+  if (!text) { alert('اكتب كود واحد على الأقل'); return; }
+  var cards = DB.get('cards') || [];
+  var added = 0, skipped = 0;
+  text.split(/[\n,;]+/).map(function(c){ return c.trim(); }).filter(Boolean).forEach(function(code){
+    var exist = cards.find(function(c){ return c.code === code; });
+    if (exist) {
+      exist.status = 'offer';
+      skipped++;
+      added++;
+    } else {
+      cards.push({ id: Date.now() + Math.random(), code: code, packageId: pkg, status: 'offer', soldAt: null, customer: null });
+      added++;
+    }
+  });
+  DB.set('cards', cards);
+  updateStats();
+  openPage('offer-cards');
+  alert('تم إضافة ' + added + ' كارت للعروض');
 }
 
 function startEditPackage(id) {
@@ -2403,158 +2624,5 @@ window.deletePending = deletePending;
 window.approvePayment = approvePayment;
 
 </script>
-</head>
-<body>
-  <div class="login-screen" id="login-screen">
-    <div style="text-align:center;font-size:42px">🦅</div>
-    <h1>كرت شبكة</h1>
-    <p id="login-hint">دخول المدير</p>
-    <input type="text" id="login-user" placeholder="اسم المستخدم" autocomplete="username" value="star" />
-    <input type="password" id="login-pass" placeholder="كلمة المرور" autocomplete="current-password" />
-    <input type="password" id="login-pass2" placeholder="تأكيد كلمة المرور" style="display:none" />
-    <button class="btn" type="button" id="login-btn" onclick="handleLogin()">دخول</button>
-    <button class="link" type="button" id="toggle-signup" onclick="showLogin(document.getElementById('login-screen').dataset.mode!=='signup')">مدير جديد؟ إنشاء حساب</button>
-  </div>
-  <div class="app locked" id="admin-app">
-    <div class="status-bar">
-      <span class="brand-mark">⭐ STAR-WiFi</span>
-    </div>
-
-    <!-- Header -->
-    <header class="header">
-      <div class="header-left">
-        <button class="icon-btn door">🚪</button>
-      </div>
-      <div class="logo">
-        <div class="logo-circle">
-          <span class="eagle">🦅</span>
-        </div>
-        <span class="logo-text">كرت شبكة</span>
-      </div>
-      <div class="header-right"></div>
-    </header>
-
-    <!-- Stats Cards -->
-    <section class="stats">
-      <div class="stat-card">
-        <div class="stat-icon gift">🎁</div>
-        <div class="stat-number">0</div>
-        <div class="stat-label">كروت العروض</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon used">📤</div>
-        <div class="stat-number">0</div>
-        <div class="stat-label">كروت مستخدمة</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon available">📥</div>
-        <div class="stat-number">0</div>
-        <div class="stat-label">كروت متاحه</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon packages">🔑</div>
-        <div class="stat-number">0</div>
-        <div class="stat-label">باقات</div>
-      </div>
-    </section>
-
-    <!-- Menu Grid -->
-    <section class="menu-grid">
-      <button class="menu-item" data-page="feed-cards">
-        <div class="menu-icon box">📦</div>
-        <span>تغذية كروت الباقات</span>
-      </button>
-      <button class="menu-item" data-page="packages">
-        <div class="menu-icon key">🔑</div>
-        <span>باقات الكروت</span>
-      </button>
-
-      <button class="menu-item" data-page="archive">
-        <div class="menu-icon clipboard">📋</div>
-        <span>أرشيف الرسائل والكروت</span>
-      </button>
-      <button class="menu-item" data-page="offers">
-        <div class="menu-icon gift-box">🎁</div>
-        <span>عروض الباقات</span>
-      </button>
-
-      <button class="menu-item" data-page="wallets">
-        <div class="menu-icon user">👤</div>
-        <span>حسابات المحافظ والبنوك</span>
-      </button>
-      <button class="menu-item" data-page="sales">
-        <div class="menu-icon chart">📊</div>
-        <span>مبيعات الكروت</span>
-      </button>
-
-      <button class="menu-item" data-page="customers">
-        <div class="menu-icon users">👥</div>
-        <span>العملاء</span>
-      </button>
-      <button class="menu-item active" data-page="manual-send">
-        <div class="menu-icon send">📤</div>
-        <span>إرسال يدوي</span>
-      </button>
-
-      <button class="menu-item" data-page="settings">
-        <div class="menu-icon gear">⚙️</div>
-        <span>الإعدادات</span>
-      </button>
-      <button class="menu-item" data-page="pos">
-        <div class="menu-icon store">🏪</div>
-        <span>نقاط البيع والبقالات</span>
-      </button>
-
-      <button class="menu-item" data-page="sms-device">
-        <div class="menu-icon">📱</div>
-        <span>رمز جهاز الفحص</span>
-      </button>
-      <button class="menu-item" data-page="payment-review">
-        <div class="menu-icon">✅</div>
-        <span>مراجعة التحويلات</span>
-      </button>
-      <button class="menu-item" data-page="sms-bridge">
-        <div class="menu-icon">📡</div>
-        <span>جسر الرسائل</span>
-      </button>
-      <button class="menu-item" data-page="pending">
-        <div class="menu-icon">⏳</div>
-        <span>الطلبات المعلقة</span>
-      </button>
-
-      <button class="menu-item full" data-page="backup">
-        <div class="menu-icon disk">💾</div>
-        <span>نسخ احتياطي</span>
-      </button>
-    </section>
-
-    <!-- Footer -->
-    <footer class="footer">
-      <div class="footer-contact">للتواصل: 01023545726</div>
-      <div style="margin-top:10px">
-        <a href="customer.html" target="_blank" style="color:#f5a623;font-size:13px;font-weight:700;text-decoration:none">
-          🛒 فتح صفحة العميل
-        </a>
-      </div>
-    </footer>
-  </div>
-
-  <!-- Pages Container (Hidden by default) -->
-  <div id="page-container" class="page-container hidden">
-    <div class="page-header">
-      <button class="back-btn" id="back-btn">→ رجوع</button>
-      <h2 id="page-title">العنوان</h2>
-    </div>
-    <div id="page-content" class="page-content"></div>
-  </div>
-
-  
-  
-  
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js').catch(function(){});
-    }
-  </script>
 </body>
 </html>
