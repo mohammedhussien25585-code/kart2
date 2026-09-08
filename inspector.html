@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>جسر الرسائل</title>
+  <style>
+    body { font-family: Tahoma, Arial, sans-serif; background:#111; color:#fff; margin:0; }
+    .box { max-width:420px; margin:0 auto; padding:20px; }
+    h1 { font-size:22px; margin:8px 0 4px; text-align:center; }
+    p { color:#bbb; font-size:14px; line-height:1.7; }
+    label { display:block; font-size:13px; margin-top:8px; }
+    input, textarea { width:100%; padding:12px; border:0; border-radius:10px; margin:6px 0 10px; box-sizing:border-box; font-size:15px; font-family:inherit; }
+    button { width:100%; padding:13px; border:0; border-radius:10px; background:#f5a623; color:#111; font-weight:800; font-size:16px; margin-bottom:8px; }
+    .out { background:#1b1b1b; padding:12px; border-radius:10px; min-height:70px; font-size:13px; white-space:pre-wrap; }
+    .ok { color:#7d7; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>جسر الرسائل</h1>
+    <p>ثبّت الصفحة على شاشة موبايل المدير. الصق رسالة فودافون كاش أو اكتب المبلغ.</p>
+    <label>رابط السيرفر</label>
+    <input id="api" dir="ltr" value="https://kart2-production.up.railway.app" />
+    <label>رمز الجهاز</label>
+    <input id="code" dir="ltr" value="471AE0" />
+    <label>نص الرسالة</label>
+    <textarea id="body" rows="5" placeholder="تم استلام مبلغ 120 جنيه من..."></textarea>
+    <label>المبلغ (لو الرسالة مش واضحة)</label>
+    <input id="amount" type="number" placeholder="120" />
+    <button id="go">إرسال للسيرفر</button>
+    <button id="ping" style="background:#333;color:#fff">فحص الاتصال</button>
+    <div class="out" id="out">في انتظار رسالة...</div>
+  </div>
+  <script>
+    function parseAmount(text){
+      var n = document.getElementById('amount').value;
+      if (n) return parseFloat(n);
+      var s = String(text||'').replace(/,/g,'');
+      var m = s.match(/(\d+(?:\.\d+)?)\s*(جنيه|ج\.م|EGP|ج)/i);
+      if (m) return parseFloat(m[1]);
+      m = s.match(/(?:مبلغ|استلام|تحويل)\s*(\d+)/);
+      return m ? parseFloat(m[1]) : null;
+    }
+    function parseFrom(text){
+      var m = String(text||'').match(/01[0-9]{9}/);
+      return m ? m[0] : '';
+    }
+    document.getElementById('ping').onclick = async function(){
+      var base = document.getElementById('api').value.replace(/\/$/,'');
+      var out = document.getElementById('out');
+      try {
+        var r = await fetch(base + '/api/device');
+        var j = await r.json();
+        out.textContent = 'متصل\nرمز السيرفر: ' + (j.code||'') + '\nالحالة: ' + (j.connected?'متصل':'في انتظار أول رسالة');
+        if (j.code) document.getElementById('code').value = j.code;
+      } catch(e){
+        out.textContent = 'السيرفر مش واصل: ' + e.message;
+      }
+    };
+    document.getElementById('go').onclick = async function(){
+      var base = document.getElementById('api').value.replace(/\/$/,'');
+      var body = document.getElementById('body').value.trim();
+      var amount = parseAmount(body);
+      var out = document.getElementById('out');
+      if (!amount) { out.textContent = 'المبلغ مش واضح.'; return; }
+      var payload = {
+        deviceId: document.getElementById('code').value.trim(),
+        from: parseFrom(body),
+        amount: amount,
+        ref: 'REF' + Date.now(),
+        body: body || ('تحويل ' + amount + ' جنيه'),
+        receivedAt: Date.now()
+      };
+      out.textContent = 'جاري الإرسال...';
+      try {
+        var r = await fetch(base + '/api/sms-bridge/events', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify(payload)
+        });
+        var t = await r.text();
+        out.textContent = 'الرد:\n' + t;
+      } catch(e){
+        out.textContent = 'فشل الإرسال: ' + e.message;
+      }
+    };
+  </script>
+</body>
+</html>
