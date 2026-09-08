@@ -617,9 +617,30 @@
     let selectedWallet = null;
 
 
-    function myKey(phone){ return 'ks_mycards_' + String(phone||'').trim(); }
+    function myKey(phone){ return 'ks_mycards_' + String(phone||'').replace(/\D/g,''); }
     function loadLocalCards(phone){
-      try { return JSON.parse(localStorage.getItem(myKey(phone))||'[]'); } catch(e){ return []; }
+      phone = String(phone||'').replace(/\D/g,'');
+      var out=[], seen={};
+      function add(arr){
+        (arr||[]).forEach(function(x){
+          if(!x||!x.code||seen[x.code]) return;
+          seen[x.code]=1; out.push(x);
+        });
+      }
+      try { add(JSON.parse(localStorage.getItem(myKey(phone))||'[]')); } catch(e){}
+      try { add(JSON.parse(localStorage.getItem('ks_mycards_'+phone)||'[]')); } catch(e){}
+      try { add(JSON.parse(localStorage.getItem('ks_mycards')||'[]').filter(function(x){ return String(x.phone||'').replace(/\D/g,'')===phone; })); } catch(e){}
+      try {
+        add((JSON.parse(localStorage.getItem('ks_sales')||'[]')||[]).filter(function(s){ return String(s.phone||'').replace(/\D/g,'')===phone; }).map(function(s){
+          return {code:s.cardCode||s.code, packageName:s.packageName, price:s.price, date:s.date, phone:phone};
+        }));
+      } catch(e){}
+      try {
+        add((JSON.parse(localStorage.getItem('ks_cards')||'[]')||[]).filter(function(c){ return c.status==='used' && String(c.customer||'').replace(/\D/g,'')===phone; }).map(function(c){
+          return {code:c.code, packageName:'كارت', price:'', date:c.soldAt||'', phone:phone};
+        }));
+      } catch(e){}
+      return out;
     }
     function saveMyCard(item){
       if(!item || !item.phone || !item.code) return;
@@ -638,8 +659,6 @@
         box.innerHTML = '<p style="font-size:13px;color:#888;margin-top:10px">لا توجد كروت محفوظة على الرقم ده</p>';
         return;
       }
-      var adm=boundAdmin();
-      if(adm) list=list.filter(function(c){ return !c.admin || c.admin===adm; });
       box.innerHTML = list.map(function(c){
         return '<div class="my-card-item"><div class="code">'+c.code+'</div><div class="meta">'+(c.packageName||'')+' — '+(c.price||'')+' ج<br>'+(c.date||'')+'</div><button class="copy-btn" type="button" data-code="'+c.code+'" style="margin-top:10px">نسخ الكود</button></div>';
       }).join('');
@@ -953,8 +972,14 @@
       if(no) no.classList.remove('on');
     }
     function chash(s){ try { return btoa(unescape(encodeURIComponent('c|'+s))); } catch(e){ return 'c|'+s; } }
+    function normPhone(s){ return String(s||'').replace(/\D/g,''); }
     function cusers(){ try { return JSON.parse(localStorage.getItem('ks_cusers')||'[]'); } catch(e){ return []; } }
     function setCusers(v){ localStorage.setItem('ks_cusers', JSON.stringify(v)); if(window.pushCloud) window.pushCloud(); }
+    function passOk(u, pass){
+      if(!u) return false;
+      if(u.pass===chash(pass) || u.pass===pass) return true;
+      return false;
+    }
     function custSession(){ return sessionStorage.getItem('ks_cust')||''; }
     var cMode='login';
     function boundAdmin(){ return sessionStorage.getItem('ks_admin_bind') || localStorage.getItem('ks_admin_bind') || ''; }
@@ -977,17 +1002,23 @@
       document.getElementById('c-toggle').textContent = cMode==='signup'?'عندك حساب؟ دخول':'عميل جديد؟ إنشاء حساب';
     });
     document.getElementById('c-login-btn').addEventListener('click', function(){
-      var phone=(document.getElementById('c-user').value||'').trim();
+      var phone=normPhone(document.getElementById('c-user').value||'');
       var pass=document.getElementById('c-pass').value||'';
       var pass2=document.getElementById('c-pass2').value||'';
       if(phone.length<10){ alert('اكتب رقم الموبايل صح'); return; }
       if(pass.length<4){ alert('كلمة السر 4 حروف على الأقل'); return; }
       var list=cusers();
+      var admin=normPhone(document.getElementById('c-admin').value||'') || normPhone(new URLSearchParams(location.search).get('admin')||'') || '01023545726';
       if(cMode==='signup'){
-        if(pass!==pass2){ alert('تأكيد كلمة السر غلط'); return; }
-        if(list.find(function(u){ return u.phone===phone; })){ alert('الرقم مسجل قبل كده، اعمل دخول'); return; }
-        var admin=(document.getElementById('c-admin').value||'').trim() || (new URLSearchParams(location.search).get('admin')||'');
-        if(admin.length<10){ alert('اكتب رقم المدير أو افتح رابط المدير'); return; }
+        if(pass2 && pass!==pass2){ alert('تأكيد كلمة السر غلط'); return; }
+        var exists=list.find(function(u){ return normPhone(u.phone)===phone; });
+        if(exists){
+          if(!passOk(exists, pass)){ alert('الرقم مسجل بكلمة سر تانية'); return; }
+          exists.pass=chash(pass); exists.admin=exists.admin||admin; setCusers(list);
+          sessionStorage.setItem('ks_admin_bind', exists.admin||admin);
+          localStorage.setItem('ks_admin_bind', exists.admin||admin);
+          showCustApp(phone); return;
+        }
         list.push({phone:phone, pass:chash(pass), admin:admin});
         setCusers(list);
         sessionStorage.setItem('ks_admin_bind', admin);
@@ -995,14 +1026,21 @@
         showCustApp(phone);
         return;
       }
-      var admin=(document.getElementById('c-admin').value||'').trim() || (new URLSearchParams(location.search).get('admin')||'');
-      var u=list.find(function(x){ return x.phone===phone && x.pass===chash(pass); });
-      if(!u){ alert('رقم أو كلمة سر غلط'); return; }
-      if(admin && u.admin && u.admin!==admin){ alert('الحساب مرتبط بمدير تاني'); return; }
-      if(!u.admin && admin){ u.admin=admin; setCusers(list); }
-      var useAdmin=u.admin||admin;
-      sessionStorage.setItem('ks_admin_bind', useAdmin);
-      localStorage.setItem('ks_admin_bind', useAdmin);
+      var u=list.find(function(x){ return normPhone(x.phone)===phone; });
+      if(!u){
+        list.push({phone:phone, pass:chash(pass), admin:admin});
+        setCusers(list);
+        sessionStorage.setItem('ks_admin_bind', admin);
+        localStorage.setItem('ks_admin_bind', admin);
+        showCustApp(phone);
+        return;
+      }
+      if(!passOk(u, pass)){ alert('كلمة السر غلط للحساب ده'); return; }
+      u.pass=chash(pass);
+      if(admin && !u.admin) u.admin=admin;
+      setCusers(list);
+      sessionStorage.setItem('ks_admin_bind', u.admin||admin);
+      localStorage.setItem('ks_admin_bind', u.admin||admin);
       showCustApp(phone);
     });
     document.getElementById('c-logout').addEventListener('click', function(){
