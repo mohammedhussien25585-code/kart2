@@ -1,0 +1,16 @@
+{
+  "name": "kart-shabaka",
+  "version": "2.0.0",
+  "description": "كرت شبكة - لوحة مدير + صفحة عميل + API + جسر رسائل",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
