@@ -432,7 +432,8 @@
     <div style="text-align:center;font-size:42px">🦅</div>
     <h1>دخول العميل</h1>
     <p id="clogin-hint">سجل دخول برقمك وكلمة السر عشان كروتك متظهرش لحد تاني</p>
-    <input type="tel" id="c-admin" placeholder="رقم المدير المرتبط بيه" dir="ltr" />
+    <input type="tel" id="c-admin" placeholder="رقم المدير المرتبط بيه" dir="ltr" style="display:none" />
+    <div id="c-admin-view" style="background:#222;color:#f5a623;border-radius:12px;padding:12px;margin-bottom:10px;text-align:center;font-size:14px">جاري تحديد المدير...</div>
     <input type="tel" id="c-user" placeholder="رقم موبايلك" dir="ltr" />
     <input type="password" id="c-pass" placeholder="كلمة السر" />
     <input type="password" id="c-pass2" placeholder="تأكيد كلمة السر" style="display:none" />
@@ -580,7 +581,8 @@
 
     // Default data if empty
     function ensureData() {
-      if (!localStorage.getItem('ks_initialized')) {
+      var pkgs = DB.get('packages') || [];
+      if (!localStorage.getItem('ks_initialized') || !pkgs.length) {
         // Redirect-like: create minimal data
         DB.set('packages', [
           { id: 1, name: 'باقة 100 جيجا', price: 120, cards: 30, active: true },
@@ -589,26 +591,13 @@
           { id: 4, name: 'باقة مكالمات', price: 50, cards: 15, active: true },
           { id: 5, name: 'باقة سوشيال', price: 40, cards: 12, active: true },
         ]);
-        DB.set('wallets', [
-          { id: 1, name: 'فودافون كاش', number: '01012345678', balance: 0 },
-          { id: 2, name: 'أورانج كاش', number: '01234567890', balance: 0 },
-        ]);
-        // Generate some cards
-        const cards = [];
-        for (let i = 0; i < 142; i++) {
-          cards.push({
-            id: i + 1,
-            code: 'CARD-' + Math.random().toString(36).substring(2, 10).toUpperCase(),
-            packageId: (i % 5) + 1,
-            status: 'available',
-            soldAt: null,
-            customer: null
-          });
+        if (!(DB.get('wallets')||[]).length) {
+          DB.set('wallets', [
+            { id: 1, name: 'فودافون كاش', number: '01023545726', balance: 0 },
+            { id: 2, name: 'أورانج كاش', number: '01234567890', balance: 0 },
+          ]);
         }
-        DB.set('cards', cards);
-        DB.set('sales', []);
-        DB.set('customers', []);
-        DB.set('pending', []);
+        if (!DB.get('cards')) DB.set('cards', []);
         localStorage.setItem('ks_initialized', '1');
       }
     }
@@ -1052,11 +1041,14 @@
     (async () => {
       if (window.bootKartApi) await window.bootKartApi();
       const fromApi = await loadFromApi();
-      if (!fromApi) ensureData();
+      ensureData();
       renderPackages();
       renderWallets();
-            var qAdmin=new URLSearchParams(location.search).get('admin')||localStorage.getItem('ks_admin_bind')||'';
-      if(qAdmin && document.getElementById('c-admin')) document.getElementById('c-admin').value=qAdmin;
+      var qAdmin=(typeof normPhone==='function'?normPhone(new URLSearchParams(location.search).get('admin')||''):String(new URLSearchParams(location.search).get('admin')||'').replace(/\D/g,'')) || String(localStorage.getItem('ks_admin_bind')||'').replace(/\D/g,'') || '01023545726';
+      if(document.getElementById('c-admin')) document.getElementById('c-admin').value=qAdmin;
+      var av=document.getElementById('c-admin-view');
+      if(av) av.textContent='مرتبط بالمدير: '+qAdmin;
+      localStorage.setItem('ks_admin_bind', qAdmin);
       if(custSession()){ showCustApp(custSession()); }
       var lb=document.getElementById('lookup-btn');
       if(lb) lb.addEventListener('click', function(){
